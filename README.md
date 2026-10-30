@@ -386,7 +386,7 @@ memoir/
 │   ├── cli.py          命令行
 │   └── locales/        zh / en / ja / ko
 ├── plugins/example_mood.py
-├── docs/               架构 / 插件 / 模型 / 多语言
+├── docs/               架构 / 插件 / 模型 / 多语言 / UI 规范 / 全生命周期
 ├── tests/test_smoke.py 11 个用例
 ├── pyproject.toml
 ├── .env.example
@@ -415,6 +415,17 @@ FTS 用 trigram，1~2 个字会退回 LIKE 匹配；词越长越准。
 
 **换电脑**
 整个 `~/.memoir/` 拷走即可；只要数据就拷 `memoir.db`。
+
+## 文档
+
+| 文档 | 内容 |
+|---|---|
+| [01-architecture](docs/01-architecture.md) | 模块划分、数据流、数据库表、降级策略 |
+| [02-plugins](docs/02-plugins.md) | 插件三个钩子、ctx 能拿到什么、调试 |
+| [03-models](docs/03-models.md) | 各家模型怎么接、参数建议、排错 |
+| [04-languages](docs/04-languages.md) | 语言包结构、回退规则、怎么加新语言 |
+| [05-ui-design](docs/05-ui-design.md) | 色板、字体、栅格、组件划分、绘图提示词 |
+| [06-engineering](docs/06-engineering.md) | **全生命周期**：需求 → UI → 前端 → 后端 → 数据库 → 模型 → 测试 → 部署 → 迭代 |
 
 ## 开发
 
