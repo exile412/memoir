@@ -65,7 +65,7 @@ python -m memoir --help
 ### 验证
 
 ```bash
-memoir --version        # memoir 0.2.0
+memoir --version        # memoir 0.3.0
 memoir config           # 打印当前配置和数据目录
 ```
 
@@ -152,31 +152,29 @@ schtasks /create /tn "memoir" /sc daily /st 23:30 /tr "python -m memoir once"
 
 ### 桌面界面
 
-![界面设计稿](design/mockup-memory.png)
+![界面实拍](design/desktop-dark.png)
 
-> 上图是深色主题的界面设计稿（[完整规范](docs/05-ui-design.md)）。当前打包的 exe 用的是浅色实现，深色皮肤还在排期——设计稿先定下来，避免边写边改样式。
+> 深色主题的实际运行截图，按 [设计规范](docs/05-ui-design.md) 实现。所有卡片、按钮、导航项都是 Canvas 自绘的圆角——tkinter 原生控件没有圆角。
 
-不想敲命令的话，两种开法：
-
-不想敲命令的话，两种开法：
+两种开法：
 
 ```bash
-memoir gui          # 有 Python 环境时
+memoir gui
 ```
 
-或者双击 `dist/memoir.exe`（11.5 MB 单文件，不需要装 Python，双击就开）。
+或者双击 `dist/memoir.exe`（12 MB 单文件，不需要装 Python）。
 
-界面分五个标签页：
+左侧导航五项：
 
-| 标签 | 干什么 |
+| 导航 | 干什么 |
 |---|---|
-| 今天 | 输入框 + `Ctrl+Enter` 记一条；下面是当天列表，可多选删除 |
-| 复盘 | 选日期、勾「不连模型」、点生成；结果显示在下面 |
-| 人格 | 一键从最近复盘学习，或刷新看当前画像 |
-| 搜索 | 全文检索，结果显示日期与类型 |
-| 设置 | 模型地址 / 模型名 / API Key / 采样参数 / 界面语言，可测连接 |
+| 记忆库 | 输入框 + `Ctrl+Enter` 记一条；下方是记录列表，选中可删 |
+| 复盘记录 | 选日期、勾「不连模型」、点生成 |
+| 人格档案 | 从最近复盘学习，或刷新看画像 |
+| 设置 | 模型地址 / 名称 / API Key / 采样参数，可测连接 |
+| 插件 | 已加载插件列表与状态 |
 
-模型调用在后台线程里跑，生成复盘时界面不会假死。
+右侧 280px 参数栏随页面更新：今日概览、类型筛选、语言切换。
 
 **自己打包：**
 
