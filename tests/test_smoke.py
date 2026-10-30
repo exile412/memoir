@@ -118,6 +118,31 @@ def test_extract_json_dirty_output() -> None:
     assert extract_json("完全不是 JSON") is None
 
 
+def test_extract_json_truncated() -> None:
+    """小模型常见：字段写完但少一个右花括号，或者字符串都没闭合。"""
+    assert extract_json('{ "events": "aaa", "closing": "bbb"') == {
+        "events": "aaa",
+        "closing": "bbb",
+    }
+    assert extract_json('{ "events": "aaa') == {"events": "aaa"}
+    assert extract_json('[{"a": 1}, {"b": 2}') == [{"a": 1}, {"b": 2}]
+    assert extract_json('{"a": {"b": [1, 2') == {"a": {"b": [1, 2]}}
+
+
+def test_unwrap_and_normalize() -> None:
+    """模型把对象套进数组、或者直接给列表时都要能接住。"""
+    from memoir.llm import unwrap_object
+    from memoir.persona import _normalize_items
+
+    assert unwrap_object({"a": 1}) == {"a": 1}
+    assert unwrap_object([{"a": 1}]) == {"a": 1}
+    assert unwrap_object([{"a": 1}, {"b": 2}]) == [{"a": 1}, {"b": 2}]
+    assert _normalize_items({"facts": [1, 2]}) == [1, 2]
+    assert _normalize_items([{"facts": [1, 2]}]) == [1, 2]
+    assert _normalize_items([{"key": "k", "value": "v"}]) == [{"key": "k", "value": "v"}]
+    assert _normalize_items("nope") is None
+
+
 def test_export_shape(tmp_path: Path) -> None:
     with Store(tmp_path / "x.db") as store:
         store.add_entry("一条")

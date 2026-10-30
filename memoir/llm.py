@@ -112,6 +112,62 @@ class LLMClient:
             return False, str(exc)
 
 
+def unwrap_object(data: Any) -> Any:
+    """模型偶尔把对象套在数组里：[{"facts": [...]}] -> {"facts": [...]}。"""
+    if isinstance(data, dict):
+        return data
+    if isinstance(data, list) and len(data) == 1 and isinstance(data[0], dict):
+        return data[0]
+    return data
+
+
+def _close_unbalanced(chunk: str) -> str:
+    """把被截断的 JSON 补齐：补上没闭合的字符串和括号。
+
+    小模型经常写完最后一个字段就停了，少一个右花括号。这种输出直接丢掉太可惜，
+    能补就补——补完仍然解析不了才放弃。
+    """
+    stack: list[str] = []
+    in_str = False
+    esc = False
+    for ch in chunk:
+        if in_str:
+            if esc:
+                esc = False
+            elif ch == "\\":
+                esc = True
+            elif ch == '"':
+                in_str = False
+        else:
+            if ch == '"':
+                in_str = True
+            elif ch in "{[":
+                stack.append(ch)
+            elif ch in "}]":
+                if stack:
+                    stack.pop()
+    out = chunk
+    if in_str:
+        out += '"'
+    for opener in reversed(stack):
+        out += "}" if opener == "{" else "]"
+    return out
+
+
+def _loads_with_repair(chunk: str) -> Any:
+    try:
+        return json.loads(chunk)
+    except json.JSONDecodeError:
+        pass
+    fixed = _close_unbalanced(chunk)
+    if fixed != chunk:
+        try:
+            return json.loads(fixed)
+        except json.JSONDecodeError:
+            pass
+    return None
+
+
 def extract_json(text: str) -> Any:
     """从模型输出里抠出第一个 JSON 对象/数组。
 
@@ -131,12 +187,13 @@ def extract_json(text: str) -> Any:
     candidates: list[tuple[int, str]] = []
     for opener, closer in (("{", "}"), ("[", "]")):
         start = s.find(opener)
-        end = s.rfind(closer)
-        if start != -1 and end > start:
-            candidates.append((start, s[start : end + 1]))
-    for _, candidate in sorted(candidates, key=lambda c: c[0]):
-        try:
-            return json.loads(candidate)
-        except json.JSONDecodeError:
+        if start == -1:
             continue
+        end = s.rfind(closer)
+        chunk = s[start : end + 1] if end > start else s[start:]
+        candidates.append((start, chunk))
+    for _, candidate in sorted(candidates, key=lambda c: c[0]):
+        parsed = _loads_with_repair(candidate)
+        if parsed is not None:
+            return parsed
     return None

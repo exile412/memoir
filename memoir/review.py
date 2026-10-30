@@ -14,7 +14,7 @@ from typing import Any, Sequence
 
 from .config import Config
 from .i18n import I18N
-from .llm import LLMClient, LLMError, extract_json
+from .llm import LLMClient, LLMError, extract_json, unwrap_object
 from .models import Entry, Review
 from .prompts import REVIEW_KEYS, build_review_messages
 
@@ -73,7 +73,7 @@ def generate_review(
         try:
             messages = build_review_messages(i18n, day, entries, facts)
             result = client.chat(messages)
-            data = extract_json(result.text)
+            data = unwrap_object(extract_json(result.text))
             if isinstance(data, dict):
                 for key in REVIEW_KEYS:
                     value = data.get(key)

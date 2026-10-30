@@ -18,6 +18,28 @@ from .prompts import build_persona_messages
 FACT_KEYS = ("性格", "价值观", "情感模式", "软肋", "执念", "偏好", "待人方式", "成长")
 
 
+def _normalize_items(data: Any) -> list[Any] | None:
+    """把模型的花式输出归一化成 [{key, value, ...}]。
+
+    见过三种：
+        {"facts": [...]}           正常
+        [{"facts": [...]}]         把对象套进数组
+        [{key, value}, ...]        直接就是列表
+    """
+    if isinstance(data, dict):
+        for value in data.values():
+            if isinstance(value, list):
+                return value
+        return None
+    if isinstance(data, list):
+        if len(data) == 1 and isinstance(data[0], dict):
+            inner = list(data[0].values())
+            if inner and isinstance(inner[0], list):
+                return inner[0]
+        return data
+    return None
+
+
 def distill(
     store: Any,
     cfg: Config,
@@ -36,8 +58,7 @@ def distill(
         try:
             messages = build_persona_messages(i18n, reviews, facts)
             result = client.chat(messages)
-            data = extract_json(result.text)
-            items = data.get("facts") if isinstance(data, dict) else data
+            items = _normalize_items(extract_json(result.text))
             if isinstance(items, list):
                 for item in items:
                     if not isinstance(item, dict):
