@@ -17,6 +17,9 @@ data/
 memoir.json
 .memoir/
 
+# 日志（可能在项目目录里被误生成）
+*.log
+
 # 编辑器 / 系统
 .vscode/
 .idea/
