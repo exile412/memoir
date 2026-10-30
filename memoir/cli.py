@@ -251,6 +251,15 @@ def cmd_daemon(app: App, args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_gui(app: App, args: argparse.Namespace) -> int:
+    """打开桌面窗口。业务逻辑复用已有模块，这里只负责把界面拉起来。"""
+    from .desktop import MemoirApp
+
+    window = MemoirApp(app.cfg)
+    window.mainloop()
+    return 0
+
+
 def cmd_once(app: App, args: argparse.Namespace) -> int:
     res = run_once(app.store, app.cfg, app.i18n, day=args.date, offline=args.offline, log=app.echo)
     app.echo(app.i18n.t("cli.daemon_once"))
@@ -329,6 +338,9 @@ def build_parser() -> argparse.ArgumentParser:
     d = sub.add_parser("daemon", help="run the nightly review daemon")
     d.add_argument("--offline", action="store_true")
     d.set_defaults(func=cmd_daemon)
+
+    gui = sub.add_parser("gui", help="open the desktop window")
+    gui.set_defaults(func=cmd_gui)
 
     o = sub.add_parser("once", help="run one nightly pass now")
     o.add_argument("--date")

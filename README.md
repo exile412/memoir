@@ -150,6 +150,38 @@ schtasks /create /tn "memoir" /sc daily /st 23:30 /tr "python -m memoir once"
 | `--no-write` | 只打印，不落库 |
 | `--force` | 强制重跑 |
 
+### 桌面界面
+
+不想敲命令的话，两种开法：
+
+```bash
+memoir gui          # 有 Python 环境时
+```
+
+或者双击 `dist/memoir.exe`（11.5 MB 单文件，不需要装 Python，双击就开）。
+
+界面分五个标签页：
+
+| 标签 | 干什么 |
+|---|---|
+| 今天 | 输入框 + `Ctrl+Enter` 记一条；下面是当天列表，可多选删除 |
+| 复盘 | 选日期、勾「不连模型」、点生成；结果显示在下面 |
+| 人格 | 一键从最近复盘学习，或刷新看当前画像 |
+| 搜索 | 全文检索，结果显示日期与类型 |
+| 设置 | 模型地址 / 模型名 / API Key / 采样参数 / 界面语言，可测连接 |
+
+模型调用在后台线程里跑，生成复盘时界面不会假死。
+
+**自己打包：**
+
+```bash
+pip install pyinstaller
+python -m PyInstaller --onefile --windowed --name memoir \
+  --add-data "memoir/locales;memoir/locales" --paths . launcher.py
+```
+
+产物在 `dist/memoir.exe`。`--onefile` 的代价是启动时先解压，等两三秒是正常的。
+
 ---
 
 ## 5. 输入输出示例

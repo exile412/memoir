@@ -26,6 +26,7 @@ dev = ["pytest>=8"]
 [project.scripts]
 memoir = "memoir.cli:main"
 mnemo = "memoir.cli:main"
+memoir-desktop = "memoir.desktop:main"
 
 [tool.setuptools]
 packages = ["memoir"]
