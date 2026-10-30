@@ -21,6 +21,7 @@ from datetime import date
 from tkinter import messagebox, ttk
 from typing import Any, Callable
 
+from . import __version__
 from .config import Config
 from .i18n import I18N
 from .models import KINDS
@@ -28,7 +29,7 @@ from .persona import distill, render_profile
 from .review import generate_review, render_review
 from .storage import Store
 
-APP_TITLE = "memoir · 记忆"
+APP_TITLE = f"memoir · 记忆   v{__version__}"
 
 KIND_LABEL = {
     "event": "事",
