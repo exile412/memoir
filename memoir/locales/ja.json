@@ -29,7 +29,9 @@
     "model_fail": "モデル接続 失敗：{detail}",
     "deleted": "#{id} を削除しました",
     "not_found": "記録が見つかりません",
-    "persona_learned": "今回 {count} 件の人物観察を学習しました"
+    "persona_learned": "今回 {count} 件の人物観察を学習しました",
+    "suspicious_isolated": "{count} 件の記録が指示文と判定され、振り返りから除外されました（--allow-suspicious で強制包含）",
+    "review_polluted": "生成された振り返りが記録内の指示に引きずられた可能性があるため破棄し、ローカル要約に切り替えました"
   },
   "report": {
     "title": "{date} · 今日の振り返り",

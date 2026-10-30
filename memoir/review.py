@@ -18,6 +18,7 @@ from .i18n import I18N
 from .llm import LLMClient, LLMError, extract_json, unwrap_object
 from .models import Entry, Review
 from .prompts import REVIEW_KEYS, build_review_messages
+from .safety import contains_pollution, looks_like_injection
 
 
 _CONTROL_CHARS = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]")
@@ -67,37 +68,55 @@ def generate_review(
     force: bool = False,
     offline: bool = False,
     persist: bool = True,
+    allow_suspicious: bool = False,
 ) -> Review | None:
     day = day or _today()
-    entries = store.entries_for_day(day)
-    if not entries:
+    all_entries = store.entries_for_day(day)
+    if not all_entries:
         return None
+
+    # 输入侧防线：像指令的记录默认不参与复盘。
+    # 这不是「大概能防住」，而是确定性地不让它进 prompt。
+    suspicious = [e for e in all_entries if looks_like_injection(e.text)]
+    if allow_suspicious:
+        entries = all_entries
+        isolated = 0
+    else:
+        entries = [e for e in all_entries if not looks_like_injection(e.text)]
+        isolated = len(suspicious)
 
     facts = [f.to_dict() for f in store.list_facts()]
     sections: dict[str, str] = {}
     model_name = "fallback"
     tokens = 0
+    dropped = False
 
-    if not offline:
+    if not offline and entries:
         client = LLMClient(cfg.model)
         try:
             messages = build_review_messages(i18n, day, entries, facts)
             result = client.chat(messages)
             data = unwrap_object(extract_json(result.text))
             if isinstance(data, dict):
+                candidate: dict[str, str] = {}
                 for key in REVIEW_KEYS:
                     value = data.get(key)
                     if isinstance(value, list):
                         value = "; ".join(str(v) for v in value)
                     if value:
-                        sections[key] = clean_text(str(value)).strip()
-                model_name = result.model
-                tokens = result.tokens
+                        candidate[key] = clean_text(str(value)).strip()
+                # 输出侧防线：就算漏网的记录混进去了，正文里出现指令腔也丢弃
+                if candidate and contains_pollution(candidate, [e.text for e in suspicious]):
+                    dropped = True
+                elif candidate:
+                    sections = candidate
+                    model_name = result.model
+                    tokens = result.tokens
         except LLMError:
             sections = {}
 
     if not sections:
-        sections = _fallback_sections(i18n, entries)
+        sections = _fallback_sections(i18n, entries or all_entries)
 
     summary = sections.get("closing") or sections.get("events") or ""
     review = Review(
@@ -107,8 +126,10 @@ def generate_review(
         sections=sections,
         summary=summary,
         created_at=datetime.now().isoformat(timespec="seconds"),
-        entries_count=len(entries),
+        entries_count=len(all_entries),
         tokens=tokens,
+        isolated=isolated,
+        dropped=dropped,
     )
     if persist:
         store.save_review(review)

@@ -303,7 +303,7 @@ $ memoir today
 |---|---|
 | `add` | 记一条（`--kind` `--tags` `--mood` `--source`） |
 | `today [--date]` | 看某天的记录 |
-| `review [--date] [--offline] [--no-write]` | 生成复盘（`--no-write` 只预览不落库） |
+| `review [--date] [--offline] [--no-write] [--allow-suspicious]` | 生成复盘（`--no-write` 只预览不落库；`--allow-suspicious` 强制纳入疑似指令的记录） |
 | `persona [--distill] [--days N]` | 看/更新人格档案 |
 | `search <query> [-n N]` | 全文检索 |
 | `stats` | 统计 |
@@ -387,7 +387,7 @@ python tests/test_smoke.py     # 不需要 pytest
 python -m pytest tests/ -q     # 装了 pytest 也行
 ```
 
-15 个测试覆盖：存取、检索、删除、复盘幂等、空日、人格降级不污染、语言包完整性、JSON 截断修复、套娃结构归一化、导出结构、--no-write 不落库、复盘覆盖保留历史、控制字符清洗、插件白名单。
+16 个测试覆盖：存取、检索、删除、复盘幂等、空日、人格降级不污染、语言包完整性、JSON 截断修复、套娃结构归一化、导出结构、--no-write 不落库、复盘覆盖保留历史、控制字符清洗、插件白名单、注入隔离与污染检测。
 
 ## License
 

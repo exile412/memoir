@@ -29,7 +29,9 @@
     "model_fail": "모델 연결 실패: {detail}",
     "deleted": "#{id} 삭제됨",
     "not_found": "기록을 찾을 수 없습니다",
-    "persona_learned": "이번에 인물 관찰 {count}개를 학습했습니다"
+    "persona_learned": "이번에 인물 관찰 {count}개를 학습했습니다",
+    "suspicious_isolated": "{count}건의 기록이 지시문으로 판단되어 회고에서 제외되었습니다 (--allow-suspicious로 강제 포함)",
+    "review_polluted": "생성된 회고가 기록 속 지시에 휘둘린 것으로 보여 폐기하고 로컬 요약으로 대체했습니다"
   },
   "report": {
     "title": "{date} · 오늘의 회고",

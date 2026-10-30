@@ -116,11 +116,16 @@ def cmd_review(app: App, args: argparse.Namespace) -> int:
         app.store, app.cfg, app.i18n,
         day=day, force=args.force, offline=args.offline,
         persist=not args.no_write,
+        allow_suspicious=args.allow_suspicious,
     )
     if review is None:
         app.echo(app.i18n.t("cli.review_none", date=day))
         return 0
     app.echo(render_review(review, app.i18n))
+    if review.isolated:
+        app.echo(app.i18n.t("cli.suspicious_isolated", count=str(review.isolated)))
+    if review.dropped:
+        app.echo(app.i18n.t("cli.review_polluted"))
     if review.model == "fallback":
         app.echo(app.i18n.t("cli.review_fallback"))
     if not args.offline:
@@ -282,6 +287,11 @@ def build_parser() -> argparse.ArgumentParser:
     r.add_argument("--offline", action="store_true", help="skip the model, use local summary")
     r.add_argument("--force", action="store_true")
     r.add_argument("--no-write", action="store_true")
+    r.add_argument(
+        "--allow-suspicious",
+        action="store_true",
+        help="把疑似包含指令的记录也纳入复盘（默认隔离）",
+    )
     r.set_defaults(func=cmd_review)
 
     pe = sub.add_parser("persona", help="show / update the persona profile")

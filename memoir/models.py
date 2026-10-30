@@ -44,6 +44,9 @@ class Review:
     created_at: str = ""
     entries_count: int = 0
     tokens: int = 0
+    # 以下两个只在内存里用，不写库：本轮隔离了几条可疑记录、是否因污染被丢弃
+    isolated: int = 0
+    dropped: bool = False
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)

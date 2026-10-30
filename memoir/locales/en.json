@@ -29,7 +29,9 @@
     "model_fail": "Model unreachable: {detail}",
     "deleted": "Deleted #{id}",
     "not_found": "Entry not found",
-    "persona_learned": "Learned {count} persona observations"
+    "persona_learned": "Learned {count} persona observations",
+    "suspicious_isolated": "{count} entr(y/ies) looked like instructions and were isolated from this review (use --allow-suspicious to force-include)",
+    "review_polluted": "The generated review looked steered by instructions inside your entries; discarded, local summary used instead"
   },
   "report": {
     "title": "{date} · Daily review",

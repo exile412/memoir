@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import json
 import socket
+import time
 import urllib.error
 import urllib.request
 from dataclasses import dataclass
@@ -18,7 +19,15 @@ from .config import ModelConfig
 
 
 class LLMError(RuntimeError):
-    """模型调用失败（连接、鉴权、响应格式）。"""
+    """模型调用失败。
+
+    retryable=True 表示是瞬时故障（超时、连接断开、5xx），值得重试；
+    鉴权失败、模型名不存在、协议不对这类重试也没用。
+    """
+
+    def __init__(self, message: str, retryable: bool = False) -> None:
+        super().__init__(message)
+        self.retryable = retryable
 
 
 @dataclass
@@ -54,6 +63,25 @@ class LLMClient:
         messages: Sequence[Message],
         temperature: float | None = None,
         max_tokens: int | None = None,
+        retries: int = 2,
+    ) -> ChatResult:
+        """带退避重试的调用。只对瞬时故障重试，配置类错误直接抛。"""
+        last: LLMError | None = None
+        for attempt in range(retries + 1):
+            try:
+                return self._chat_once(messages, temperature, max_tokens)
+            except LLMError as exc:
+                last = exc
+                if not exc.retryable or attempt >= retries:
+                    raise
+                time.sleep(1.2 * (attempt + 1))
+        raise last if last else LLMError("unknown failure")
+
+    def _chat_once(
+        self,
+        messages: Sequence[Message],
+        temperature: float | None = None,
+        max_tokens: int | None = None,
     ) -> ChatResult:
         payload: dict[str, Any] = {
             "model": self.cfg.name,
@@ -72,16 +100,19 @@ class LLMClient:
         except urllib.error.HTTPError as exc:
             body = exc.read().decode("utf-8", errors="replace")[:400]
             raise LLMError(
-                f"HTTP {exc.code} from {self._url()}: {body}"
+                f"HTTP {exc.code} from {self._url()}: {body}",
+                retryable=exc.code >= 500 or exc.code == 429,
             ) from exc
         except urllib.error.URLError as exc:
             raise LLMError(
                 f"无法连接模型服务 {self._url()}（{exc.reason}）。"
-                "检查 MEMOIR_BASE_URL 是否正确、本地模型是否已启动。"
+                "检查 MEMOIR_BASE_URL 是否正确、本地模型是否已启动。",
+                retryable=True,
             ) from exc
         except (socket.timeout, TimeoutError) as exc:
             raise LLMError(
-                f"模型响应超时（{self.cfg.timeout}s），可调大 MEMOIR_TIMEOUT。"
+                f"模型响应超时（{self.cfg.timeout}s），可调大 MEMOIR_TIMEOUT。",
+                retryable=True,
             ) from exc
 
         try:

@@ -29,7 +29,9 @@
     "model_fail": "模型不可用：{detail}",
     "deleted": "已删除 #{id}",
     "not_found": "没有找到这条记录",
-    "persona_learned": "本次学到 {count} 条人格观察"
+    "persona_learned": "本次学到 {count} 条人格观察",
+    "suspicious_isolated": "有 {count} 条记录疑似包含指令性文本，已隔离、未参与复盘（--allow-suspicious 可强制纳入）",
+    "review_polluted": "生成的复盘疑似被记录里的指令带偏，已丢弃，改用本地摘要"
   },
   "report": {
     "title": "{date} · 今日复盘",
