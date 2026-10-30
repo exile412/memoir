@@ -152,6 +152,12 @@ schtasks /create /tn "memoir" /sc daily /st 23:30 /tr "python -m memoir once"
 
 ### 桌面界面
 
+![界面设计稿](design/mockup-memory.png)
+
+> 上图是深色主题的界面设计稿（[完整规范](docs/05-ui-design.md)）。当前打包的 exe 用的是浅色实现，深色皮肤还在排期——设计稿先定下来，避免边写边改样式。
+
+不想敲命令的话，两种开法：
+
 不想敲命令的话，两种开法：
 
 ```bash
