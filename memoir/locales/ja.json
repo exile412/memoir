@@ -1,0 +1,71 @@
+{
+  "meta": {
+    "name": "日本語",
+    "code": "ja"
+  },
+  "app": {
+    "name": "memoir",
+    "tagline": "ローカル完結・プライベートな個人 AI 記憶システム"
+  },
+  "cli": {
+    "add_ok": "#{id} を記録しました（{kind}）",
+    "add_empty": "内容が空です",
+    "today_title": "{date} の記録（{count} 件）",
+    "no_entries": "この日の記録はまだありません。",
+    "search_none": "「{query}」に一致する記録はありません。",
+    "search_title": "「{query}」に一致する記録（{count} 件）",
+    "stats_title": "記憶の統計",
+    "review_none": "{date} に記録がないため、振り返りをスキップしました。",
+    "review_saved": "振り返りを保存しました：{date}",
+    "review_fallback": "（モデルに接続できないため、ローカル要約で代替しました）",
+    "lang_set": "表示言語を {lang} に切り替えました",
+    "lang_list": "利用可能な言語：{langs}",
+    "config_path": "設定ファイル：{path}",
+    "daemon_once": "夜間タスクを 1 回実行しました",
+    "export_ok": "{count} 件を {path} に書き出しました",
+    "plugins_title": "プラグイン",
+    "plugins_none": "プラグインがありません。{dir} に .py ファイルを置いてください。",
+    "model_ok": "モデル接続 OK：{detail}",
+    "model_fail": "モデル接続 失敗：{detail}",
+    "deleted": "#{id} を削除しました",
+    "not_found": "記録が見つかりません",
+    "persona_learned": "今回 {count} 件の人物観察を学習しました"
+  },
+  "report": {
+    "title": "{date} · 今日の振り返り",
+    "none": "（なし）",
+    "fallback_thinking": "今日の記録の内訳：{kinds}。ローカルモードでは統計のみです。モデル接続後に具体的な観察が入ります。",
+    "fallback_character": "ローカルモードでは性格の推論を行いません。モデル接続後に長期記録と合わせて生成します。",
+    "fallback_closing": "今日は {count} 件、{first} から {last} まで記録しました。書き続けていること自体が、自分の日々を大切にしている証拠です。",
+    "sections": {
+      "events": "今日やったこと",
+      "thoughts": "本音と感情",
+      "thinking": "考え方の変化",
+      "character": "性格と状態",
+      "closing": "あなたへ"
+    },
+    "meta": "— {count} 件の記録に基づく · モデル {model} · 言語 {locale}"
+  },
+  "persona": {
+    "title": "私から見たあなた",
+    "empty": "まだ記録がありません。数日分の振り返りが溜まると、ここにあなたの姿が現れます。",
+    "snapshot": "最新の観察：{date}",
+    "stats": "累計 {entries} 件 / {days} 日 / 振り返り {reviews} 回",
+    "fallback_key": "性格の観察"
+  },
+  "scheduler": {
+    "started": "夜間振り返りデーモンを開始しました。毎日 {at} に実行します。",
+    "sleeping": "次回の振り返り：{target}（約 {hours} 時間後）",
+    "done": "{date} の振り返り完了：{count} 件、人物観察 {facts} 件",
+    "no_entries": "{date} は記録がないためスキップしました。",
+    "stopped": "デーモンを停止しました。"
+  },
+  "prompts": {
+    "review_system": "あなたは個人用の振り返りアシスタントです。ユーザーはその日の出来事・本音・感情を記録として残しています。\n役割は評価ではなく、正確に映し返すことです：何があったか、そのとき何を考えていたか、感情がどこに落ちたか。\n具体的に、根拠を示して書くこと。説教や定型句は禁止。\nJSON のみを出力し、余計な文章は書かないこと。",
+    "review_user": "日付：{date}\n記録件数：{count}\n\n【今日の記録】\n{entries}\n\n【既知の人物プロファイル】\n{persona}\n\n次の JSON 形式で厳密に出力してください：\n{schema}",
+    "review_schema": "{\n  \"events\": \"客観的な記録：今日やったこと、2〜4 文\",\n  \"thoughts\": \"本音：今日の心の声と感情の起伏、できるだけ本人の口調で\",\n  \"thinking\": \"考え方：今日の迷い、判断、思考の変化\",\n  \"character\": \"性格と状態：今日表れた性格の特徴とエネルギーの状態\",\n  \"closing\": \"やさしい締めくくり：この人に寄り添う 3〜4 文、説教しない\"\n}",
+    "persona_system": "あなたは長期的な観察者です。ユーザーの日々の記録から「この人はどんな人か」という安定した観察を抽出します。\n原則：\n1. 根拠のあることだけを書く。evidence には日付や該当する記述を入れる；\n2. 行動の傾向を書き、診断的なラベル（MBTI や病名など）は使わない；\n3. 同じ観察を繰り返さない。少なくても質を優先；\n4. JSON のみ。",
+    "persona_user": "【最近の振り返り】\n{reviews}\n\n【既存プロファイル】\n{persona}\n\n新しい観察を 1〜5 件、次の形式で抽出してください：\n{schema}",
+    "persona_schema": "{\"facts\": [{\"key\": \"性格|価値観|愛着|弱さ|執着|好み|人付き合い|成長\", \"value\": \"具体的な観察を一文で\", \"confidence\": 0.6, \"evidence\": \"どの日 / どの記録から\"}]}"
+  }
+}

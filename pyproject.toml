@@ -1,0 +1,37 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "memoir"
+version = "1.0.0"
+description = "Private, local-first AI memory system: record your days, get a nightly review, grow a persona profile."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [{ name = "memoir contributors" }]
+keywords = ["memory", "journal", "ai", "llm", "local-first", "privacy", "persona"]
+classifiers = [
+  "Programming Language :: Python :: 3",
+  "License :: OSI Approved :: MIT License",
+  "Operating System :: OS Independent",
+  "Environment :: Console",
+  "Topic :: Office/Business :: Scheduling",
+]
+dependencies = []
+
+[project.optional-dependencies]
+dev = ["pytest>=8"]
+
+[project.scripts]
+memoir = "memoir.cli:main"
+mnemo = "memoir.cli:main"
+
+[tool.setuptools]
+packages = ["memoir"]
+
+[tool.setuptools.package-data]
+memoir = ["locales/*.json"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

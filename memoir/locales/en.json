@@ -1,0 +1,71 @@
+{
+  "meta": {
+    "name": "English",
+    "code": "en"
+  },
+  "app": {
+    "name": "memoir",
+    "tagline": "A private, local-first AI memory system"
+  },
+  "cli": {
+    "add_ok": "Saved #{id} ({kind})",
+    "add_empty": "Nothing to save — content is empty",
+    "today_title": "Entries for {date} ({count})",
+    "no_entries": "No entries for this day yet.",
+    "search_none": "Nothing found for \"{query}\".",
+    "search_title": "Matches for \"{query}\" ({count})",
+    "stats_title": "Memory statistics",
+    "review_none": "No entries on {date}, skipped.",
+    "review_saved": "Review written to the database: {date}",
+    "review_fallback": "(model unavailable — local summary used instead)",
+    "lang_set": "Interface language set to {lang}",
+    "lang_list": "Available languages: {langs}",
+    "config_path": "Config file: {path}",
+    "daemon_once": "Ran one nightly pass",
+    "export_ok": "Exported {count} entries to {path}",
+    "plugins_title": "Plugins",
+    "plugins_none": "No plugins. Drop a .py file into {dir} to add one.",
+    "model_ok": "Model reachable: {detail}",
+    "model_fail": "Model unreachable: {detail}",
+    "deleted": "Deleted #{id}",
+    "not_found": "Entry not found",
+    "persona_learned": "Learned {count} persona observations"
+  },
+  "report": {
+    "title": "{date} · Daily review",
+    "none": "(none)",
+    "fallback_thinking": "Entry mix today: {kinds}. Local mode can only count; with a model this becomes an actual observation.",
+    "fallback_character": "Local mode does not infer personality. Connect a model to let the AI use your long-term profile.",
+    "fallback_closing": "{count} entries today, from {first} to {last}. Showing up to write it down already counts for something.",
+    "sections": {
+      "events": "What you did",
+      "thoughts": "Inner voice & feelings",
+      "thinking": "How your thinking moved",
+      "character": "Character & state",
+      "closing": "A word for you"
+    },
+    "meta": "— based on {count} entries · model {model} · locale {locale}"
+  },
+  "persona": {
+    "title": "How I see you",
+    "empty": "The profile is empty. After a few days of reviews, a picture of you will start to form here.",
+    "snapshot": "Latest observation: {date}",
+    "stats": "{entries} entries / {days} days / {reviews} reviews",
+    "fallback_key": "Character observation"
+  },
+  "scheduler": {
+    "started": "Nightly review daemon started, runs daily at {at}.",
+    "sleeping": "Next review: {target} (in about {hours} h)",
+    "done": "Review for {date} done: {count} entries, {facts} persona observations",
+    "no_entries": "No entries on {date}, skipped.",
+    "stopped": "Daemon stopped."
+  },
+  "prompts": {
+    "review_system": "You are a private daily-review assistant. The user recorded what happened today, what they thought, how they felt.\nYour job is not to judge, but to reflect back faithfully: what happened, what they were thinking, where the feelings landed.\nBe concrete, cite evidence, avoid preaching, avoid platitudes.\nOutput JSON only, no extra prose.",
+    "review_user": "Date: {date}\nEntry count: {count}\n\n[Today's entries]\n{entries}\n\n[Known persona profile]\n{persona}\n\nOutput strictly in this JSON shape:\n{schema}",
+    "review_schema": "{\n  \"events\": \"Objective record of what happened today, 2-4 sentences\",\n  \"thoughts\": \"Inner monologue and emotional swings today, in my own voice where possible\",\n  \"thinking\": \"How my thinking moved today: doubts, decisions, patterns\",\n  \"character\": \"Character traits and energy state shown today\",\n  \"closing\": \"A warm, specific closing of 3-4 sentences, no lecturing\"\n}",
+    "persona_system": "You are a long-term observer. The user records life daily; you extract stable, evidence-based observations about who they are.\nRules:\n1. Only claims with evidence; put the source day or quote in evidence;\n2. Describe behavioural tendencies, never diagnostic labels (no MBTI, no clinical terms);\n3. Do not repeat the same observation; fewer and better;\n4. JSON only.",
+    "persona_user": "[Recent reviews]\n{reviews}\n\n[Existing profile]\n{persona}\n\nExtract 1-5 new observations in this shape:\n{schema}",
+    "persona_schema": "{\"facts\": [{\"key\": \"character|values|attachment|vulnerability|fixation|preference|social_style|growth\", \"value\": \"one concrete observation\", \"confidence\": 0.6, \"evidence\": \"which day / which entry\"}]}"
+  }
+}

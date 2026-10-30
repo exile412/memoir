@@ -1,0 +1,71 @@
+{
+  "meta": {
+    "name": "简体中文",
+    "code": "zh"
+  },
+  "app": {
+    "name": "memoir",
+    "tagline": "本地私有化的个人 AI 记忆系统"
+  },
+  "cli": {
+    "add_ok": "已记下 #{id}（{kind}）",
+    "add_empty": "内容不能为空",
+    "today_title": "{date} 的记录（{count} 条）",
+    "no_entries": "这一天还没有记录。",
+    "search_none": "没有找到与「{query}」相关的记录。",
+    "search_title": "与「{query}」相关的记录（{count} 条）",
+    "stats_title": "记忆库统计",
+    "review_none": "{date} 没有记录，跳过复盘。",
+    "review_saved": "复盘已写入数据库：{date}",
+    "review_fallback": "（模型不可用，已用本地摘要兜底）",
+    "lang_set": "界面语言已切换为 {lang}",
+    "lang_list": "可用语言：{langs}",
+    "config_path": "配置文件：{path}",
+    "daemon_once": "已执行一次夜间任务",
+    "export_ok": "已导出 {count} 条记录到 {path}",
+    "plugins_title": "插件",
+    "plugins_none": "没有插件。把 .py 文件放进 {dir} 即可。",
+    "model_ok": "模型可用：{detail}",
+    "model_fail": "模型不可用：{detail}",
+    "deleted": "已删除 #{id}",
+    "not_found": "没有找到这条记录",
+    "persona_learned": "本次学到 {count} 条人格观察"
+  },
+  "report": {
+    "title": "{date} · 今日复盘",
+    "none": "（无）",
+    "fallback_thinking": "今天记录的分布：{kinds}。本地模式只能给出统计，接上模型后这里会是具体的思维观察。",
+    "fallback_character": "本地模式暂不做性格推断，接上模型后由 AI 结合长期档案给出。",
+    "fallback_closing": "今天记了 {count} 条，从 {first} 到 {last}。能坚持记下来，本身就说明你在认真对待自己的日子。",
+    "sections": {
+      "events": "今天做了什么",
+      "thoughts": "心里话与情绪",
+      "thinking": "想法与思维变化",
+      "character": "性格与状态",
+      "closing": "给你的话"
+    },
+    "meta": "—— 依据 {count} 条记录 · 模型 {model} · 语言 {locale}"
+  },
+  "persona": {
+    "title": "我眼里的你",
+    "empty": "档案还是空的。等积累几天的复盘之后，这里会慢慢长出你的样子。",
+    "snapshot": "最近一次观察：{date}",
+    "stats": "累计 {entries} 条记录 / {days} 天 / {reviews} 份复盘",
+    "fallback_key": "性格观察"
+  },
+  "scheduler": {
+    "started": "夜间复盘守护已启动，每天 {at} 执行。",
+    "sleeping": "下一次复盘：{target}（约 {hours} 小时后）",
+    "done": "{date} 复盘完成：{count} 条记录，学到 {facts} 条人格观察",
+    "no_entries": "{date} 没有记录，跳过。",
+    "stopped": "已退出守护进程。"
+  },
+  "prompts": {
+    "review_system": "你是一个私人记忆复盘助手。用户把一天里发生的事、心里话、情绪都记下来交给你。\n你的任务不是评判，而是如实还原：今天发生了什么、他当时在想什么、情绪落在哪里。\n要求：具体，指得出依据，不说教，不灌鸡汤，不用陈词滥调。\n只输出 JSON，不要任何额外文字。",
+    "review_user": "日期：{date}\n记录条数：{count}\n\n【今天的记录】\n{entries}\n\n【已知的人格档案】\n{persona}\n\n请严格按下面的 JSON 结构输出：\n{schema}",
+    "review_schema": "{\n  \"events\": \"客观纪实：今天我做了哪些事，2-4 句，动词开头\",\n  \"thoughts\": \"心里话：今天流露的内心独白与情绪起伏，尽量用我自己的口吻\",\n  \"thinking\": \"思维方式：今天的想法变化、纠结的点、判断方式\",\n  \"character\": \"性格与状态：今天展现出的性格特点与精力状态\",\n  \"closing\": \"温柔总结：贴着这个人说的三四句话，具体，不说教\"\n}",
+    "persona_system": "你是一个长期观察者。用户每天把生活记下来，你从中提炼关于「他是一个什么样的人」的稳定观察。\n原则：\n1. 只写有证据的，evidence 里写清依据来自哪天或哪句话；\n2. 描述行为倾向，不要贴诊断标签（不要用 MBTI、心理疾病等名词）；\n3. 同一件事不要重复记，宁少勿滥；\n4. 只输出 JSON。",
+    "persona_user": "【最近的复盘】\n{reviews}\n\n【已有档案】\n{persona}\n\n请提炼 1-5 条新的人格观察，按下面结构输出：\n{schema}",
+    "persona_schema": "{\"facts\": [{\"key\": \"性格|价值观|情感模式|软肋|执念|偏好|待人方式|成长\", \"value\": \"一句具体的观察\", \"confidence\": 0.6, \"evidence\": \"来自哪天/哪句记录\"}]}"
+  }
+}

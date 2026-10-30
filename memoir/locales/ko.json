@@ -1,0 +1,71 @@
+{
+  "meta": {
+    "name": "한국어",
+    "code": "ko"
+  },
+  "app": {
+    "name": "memoir",
+    "tagline": "로컬에서 완결되는 프라이빗 개인 AI 기억 시스템"
+  },
+  "cli": {
+    "add_ok": "#{id} 기록됨 ({kind})",
+    "add_empty": "내용이 비어 있습니다",
+    "today_title": "{date} 기록 ({count}건)",
+    "no_entries": "이 날의 기록이 아직 없습니다.",
+    "search_none": "\"{query}\"에 해당하는 기록이 없습니다.",
+    "search_title": "\"{query}\" 검색 결과 ({count}건)",
+    "stats_title": "기억 통계",
+    "review_none": "{date}에 기록이 없어 회고를 건너뜁니다.",
+    "review_saved": "회고를 저장했습니다: {date}",
+    "review_fallback": "(모델에 연결할 수 없어 로컬 요약으로 대체했습니다)",
+    "lang_set": "인터페이스 언어를 {lang}(으)로 변경했습니다",
+    "lang_list": "사용 가능한 언어: {langs}",
+    "config_path": "설정 파일: {path}",
+    "daemon_once": "야간 작업을 1회 실행했습니다",
+    "export_ok": "{count}건을 {path}에 내보냈습니다",
+    "plugins_title": "플러그인",
+    "plugins_none": "플러그인이 없습니다. {dir}에 .py 파일을 넣으면 됩니다.",
+    "model_ok": "모델 연결 정상: {detail}",
+    "model_fail": "모델 연결 실패: {detail}",
+    "deleted": "#{id} 삭제됨",
+    "not_found": "기록을 찾을 수 없습니다",
+    "persona_learned": "이번에 인물 관찰 {count}개를 학습했습니다"
+  },
+  "report": {
+    "title": "{date} · 오늘의 회고",
+    "none": "(없음)",
+    "fallback_thinking": "오늘 기록의 구성: {kinds}. 로컬 모드에서는 통계만 제공합니다. 모델을 연결하면 구체적인 관찰이 들어갑니다.",
+    "fallback_character": "로컬 모드에서는 성격을 추론하지 않습니다. 모델을 연결하면 장기 기록과 함께 생성됩니다.",
+    "fallback_closing": "오늘 {count}건, {first}부터 {last}까지 기록했습니다. 꾸준히 적는다는 것 자체가 자기 하루를 소중히 여기고 있다는 뜻입니다.",
+    "sections": {
+      "events": "오늘 한 일",
+      "thoughts": "속마음과 감정",
+      "thinking": "생각의 변화",
+      "character": "성격과 상태",
+      "closing": "당신에게"
+    },
+    "meta": "— {count}건의 기록 기반 · 모델 {model} · 언어 {locale}"
+  },
+  "persona": {
+    "title": "내가 본 당신",
+    "empty": "아직 프로필이 비어 있습니다. 며칠치 회고가 쌓이면 여기에 당신의 모습이 나타납니다.",
+    "snapshot": "최근 관찰: {date}",
+    "stats": "누적 {entries}건 / {days}일 / 회고 {reviews}회",
+    "fallback_key": "성격 관찰"
+  },
+  "scheduler": {
+    "started": "야간 회고 데몬을 시작했습니다. 매일 {at}에 실행합니다.",
+    "sleeping": "다음 회고: {target} (약 {hours}시간 후)",
+    "done": "{date} 회고 완료: {count}건, 인물 관찰 {facts}개",
+    "no_entries": "{date}에 기록이 없어 건너뜁니다.",
+    "stopped": "데몬을 종료했습니다."
+  },
+  "prompts": {
+    "review_system": "당신은 개인 회고 도우미입니다. 사용자는 하루의 일, 속마음, 감정을 기록으로 남겼습니다.\n역할은 평가가 아니라 정확히 비춰주는 것입니다: 무슨 일이 있었는지, 그때 무엇을 생각했는지, 감정이 어디에 머물렀는지.\n구체적으로, 근거를 대며 쓰세요. 설교나 상투적인 말은 금지합니다.\nJSON만 출력하고 다른 문장은 쓰지 마세요.",
+    "review_user": "날짜: {date}\n기록 수: {count}\n\n[오늘의 기록]\n{entries}\n\n[알려진 인물 프로필]\n{persona}\n\n다음 JSON 형식으로 엄격히 출력하세요:\n{schema}",
+    "review_schema": "{\n  \"events\": \"객관적 기록: 오늘 한 일, 2-4문장\",\n  \"thoughts\": \"속마음: 오늘의 독백과 감정 기복, 가능하면 본인 말투로\",\n  \"thinking\": \"사고 방식: 오늘의 고민, 판단, 생각의 변화\",\n  \"character\": \"성격과 상태: 오늘 드러난 성격 특징과 에너지 상태\",\n  \"closing\": \"따뜻한 마무리: 이 사람에게 맞춘 3-4문장, 설교하지 않기\"\n}",
+    "persona_system": "당신은 장기 관찰자입니다. 사용자의 일상 기록에서 \"이 사람은 어떤 사람인가\"에 대한 안정적인 관찰을 뽑아냅니다.\n원칙:\n1. 근거가 있는 것만 쓴다. evidence에 날짜나 해당 문장을 적는다;\n2. 행동 경향을 쓰고 진단적 라벨(MBTI, 질병명 등)은 쓰지 않는다;\n3. 같은 관찰을 반복하지 않는다. 적더라도 질을 우선한다;\n4. JSON만.",
+    "persona_user": "[최근 회고]\n{reviews}\n\n[기존 프로필]\n{persona}\n\n새로운 관찰 1-5개를 다음 형식으로 추출하세요:\n{schema}",
+    "persona_schema": "{\"facts\": [{\"key\": \"성격|가치관|애착|약점|집착|선호|대인관계|성장\", \"value\": \"구체적인 관찰 한 문장\", \"confidence\": 0.6, \"evidence\": \"어느 날 / 어느 기록\"}]}"
+  }
+}
