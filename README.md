@@ -2,9 +2,163 @@
 
 > 白天记下来，夜里还给你。一个完全跑在你自己电脑上的个人 AI 记忆系统。
 
-`memoir` 记录你每天做的事、想的事、心情的起伏；每天晚上自动把这些流水账还原成一份**你认得出来的**复盘；日子久了，它攒出一份关于"你是个什么样的人"的档案。
+`memoir` 记录你每天做的事、想的事、心情的起伏；每天晚上把这些流水账还原成一份**你认得出来的**复盘；日子久了，攒出一份关于"你是个什么样的人"的档案。
 
-不是笔记软件，不是聊天机器人，不是某个平台的插件。**一个独立的 Python 程序**，数据全在一个 SQLite 文件里，模型接本地的也行。
+不是笔记软件，不是聊天机器人，不是某个平台的插件。**一个独立的 Python 程序**，数据全在一个 SQLite 文件里，模型接本地跑的也行。
+
+---
+
+## 1. 项目解决什么问题
+
+记忆工具都能记，但很少能被**读**。三个具体的毛病：
+
+**记了不看。** 一天记十几条，全躺在数据库里，一条条都对，但没人会回头翻。一周后问"上周到底推进了什么"，答不上来。
+
+**同一个坑反复掉。** 每次卡住都记了一笔，但没人把"又卡在这"的五次串起来看。单条记录看不出模式，攒够了也没人提炼。
+
+**翻旧账只能靠印象。** "上次那个端口冲突怎么解决的"——记录就在本地，但检索靠猜关键词，猜不中就找不到。
+
+`memoir` 补的就是这一段：**从记录里提炼结论，把结论写回记录，再让你能按线索找回来。**
+
+边界也说清楚：
+
+- ✅ 记事情、记情绪、每晚复盘、长期画像、本地存储、换模型、插件扩展、四语言
+- ❌ 不做待办/日程/笔记同步，不做网页界面，不上传任何数据，不需要账号
+
+---
+
+## 2. 主要功能
+
+| # | 能力 | 具体实现 |
+|---|---|---|
+| 1 | **随手记录** | `memoir add`，分四种类型（事件/想法/情绪/备注），可带标签、情绪分（−2~+2）、来源标记；支持从 stdin 管道喂入 |
+| 2 | **每晚复盘** | 读当天全部记录，产出五段：做了什么事 / 心里话与情绪 / 想法与思维变化 / 性格与状态 / 给你的话 |
+| 3 | **定时执行** | `memoir daemon` 常驻到点跑；或用 cron / systemd / 任务计划程序调 `memoir once` |
+| 4 | **人格档案** | 每次复盘后蒸馏"有证据的观察"，带置信度和出处；累积成画像 |
+| 5 | **多模型接入** | 任何 OpenAI 兼容的 `/v1/chat/completions`：Ollama、vLLM、LM Studio、llama.cpp、DeepSeek、Qwen…换模型只改三个环境变量 |
+| 6 | **插件扩展** | `~/.memoir/plugins/*.py` 丢进去即生效，三个钩子，异常隔离不拖垮主程序 |
+| 7 | **多国语言** | 简体中文 / English / 日本語 / 한국어；界面文案和提示词同在一个语言包里，换语言 = 换一个母语者在跟你说话 |
+| 8 | **完全本地** | 一个 SQLite 文件装下全部记忆，无服务器、无账号、无遥测；`memoir export` 出 JSON 随时带走 |
+
+### 没有模型也能用
+
+模型挂了程序不崩。复盘降级成本地统计摘要，标注 `model=fallback`；并且**降级内容不会写进人格档案**——宁可少一条观察，也不往档案里塞模板话术。
+
+---
+
+## 3. 安装方法
+
+需要 **Python 3.10+**。没有第三方依赖。
+
+```bash
+git clone <你的仓库地址> memoir
+cd memoir
+pip install -e .
+```
+
+不装也能用，直接在仓库目录里跑：
+
+```bash
+python -m memoir --help
+```
+
+### 验证
+
+```bash
+memoir --version        # memoir 1.0.0
+memoir config           # 打印当前配置和数据目录
+```
+
+首次运行会自动创建 `~/.memoir/`（数据库、插件目录、日志都在里面）。
+
+### 接上模型（可选但强烈建议）
+
+```bash
+# 本地 Ollama
+export MEMOIR_BASE_URL=http://127.0.0.1:11434/v1
+export MEMOIR_MODEL=qwen2.5:7b
+
+memoir model            # 探活，成功会打印模型回的第一句话
+```
+
+Windows PowerShell 用 `$env:MEMOIR_BASE_URL = "..."`。想让配置长期生效，写进 `~/.memoir/config.json`——`memoir config --edit` 会把当前生效的配置原样落盘，再改那个文件即可。
+
+### 可选：每日自动复盘
+
+```bash
+# Linux / macOS：cron，每天 23:30
+30 23 * * * cd /path/to/memoir && /usr/bin/python3 -m memoir once
+```
+
+```powershell
+# Windows：任务计划程序
+schtasks /create /tn "memoir" /sc daily /st 23:30 /tr "python -m memoir once"
+```
+
+想让它一直挂着也行：`memoir daemon`（读 `MEMOIR_REVIEW_AT`，默认 23:30）。
+
+---
+
+## 4. 使用方法
+
+### 日常怎么用
+
+| 场景 | 命令 |
+|---|---|
+| 随手记一件事 | `memoir add "上午把注册方式改了" --kind event --tags 编程` |
+| 记一句心里话 | `memoir add "有点怀疑自己适不适合干这个" --kind thought` |
+| 记心情并打分 | `memoir add "跟家里通了电话，好点了" --kind feeling --mood 1` |
+| 管道喂进去 | `echo "今天很顺" \| memoir add -` |
+| 看今天记了啥 | `memoir today` |
+| 看某一天 | `memoir today --date 2026-10-29` |
+| 生成复盘 | `memoir review` |
+| 不连模型跑一次 | `memoir review --offline` |
+| 看人格档案 | `memoir persona` |
+| 手动蒸馏一次 | `memoir persona --distill` |
+| 搜以前的记录 | `memoir search 端口冲突` |
+| 看统计 | `memoir stats` |
+| 导出全部 | `memoir export -o backup.json` |
+| 看插件状态 | `memoir plugins` |
+| 换语言 | `memoir lang ja` / `memoir --lang ko today` |
+| 跑一次夜间任务 | `memoir once` |
+| 常驻定时 | `memoir daemon` |
+
+### 建议的节奏
+
+1. **白天随手记**，别攒到晚上补——补出来的东西没有细节。
+2. **睡前跑一次** `memoir review`（或让定时任务跑），当天上下文还在，提炼得准。
+3. **每周看一眼** `memoir persona`，观察是不是在重复同一个模式。
+4. **偶尔搜**：`memoir search <关键词>`，中文可以直接搜。
+
+### 参数说明
+
+`memoir add` 的四个字段：
+
+| 参数 | 取值 | 说明 |
+|---|---|---|
+| `--kind` | `event` `thought` `feeling` `note` | 不填默认 `event` |
+| `--tags` | 任意字符串 | 检索用 |
+| `--mood` | `-2`~`2` | 情绪分，不填表示没打 |
+| `--source` | 任意字符串 | 标记来源，默认 `cli`，插件/脚本可自定义 |
+
+`memoir review` 的开关：
+
+| 参数 | 作用 |
+|---|---|
+| `--date YYYY-MM-DD` | 补跑某一天 |
+| `--offline` | 跳过模型，用本地摘要 |
+| `--no-write` | 只打印，不落库 |
+| `--force` | 强制重跑 |
+
+---
+
+## 5. 输入输出示例
+
+以下均为实际运行结果，未做文字加工。
+
+### 5.1 记录 → 回看
+
+输入：
 
 ```console
 $ memoir add "上午改了插件的注册方式，还是没生效，有点烦" --kind event --tags 编程
@@ -15,8 +169,28 @@ $ memoir add "其实我有点怀疑自己是不是不适合折腾这些，但又
 
 $ memoir add "晚上跟家里通了电话，心情好了一点" --kind feeling --mood 1
 已记下 #3（feeling）
+```
 
-$ memoir review
+输出：
+
+```console
+$ memoir today
+2026-10-30 的记录（3 条）
+-------------------
+[20:51] #1 (event) 上午改了插件的注册方式，还是没生效，有点烦 #编程
+[20:51] #2 (thought) 其实我有点怀疑自己是不是不适合折腾这些，但又不甘心
+[20:51] #3 (feeling) 晚上跟家里通了电话，心情好了一点 mood=+1
+```
+
+> `#数字` 是条目 id，`mood=+1` 是你打的分。
+
+### 5.2 复盘（接了模型）
+
+输入：`memoir review`
+
+输出：
+
+```console
 2026-10-30 · 今日复盘
 =================
 
@@ -38,12 +212,45 @@ $ memoir review
 —— 依据 3 条记录 · 模型 qwen3-8b-zh-fast:latest · 语言 zh
 ```
 
-上面这段没有修字，是真实跑出来的。模型是本机 Ollama 的 8B 模型——换成 14B 或线上模型，五段会写得更细。
+> 这是本机 Ollama 8B 模型的真实输出，一个字没改。换 14B 或线上模型，五段会写得更细。
 
-人格档案是这么长出来的：
+### 5.3 复盘（不接模型）
+
+输入：`memoir review --offline`
+
+输出：
 
 ```console
-$ memoir persona --distill
+2026-10-30 · 今日复盘
+=================
+
+【今天做了什么】
+上午改了插件的注册方式，还是没生效，有点烦; 晚上跟家里通了电话，心情好了一点
+
+【心里话与情绪】
+其实我有点怀疑自己是不是不适合折腾这些，但又不甘心
+
+【想法与思维变化】
+今天记录的分布：event×2, thought×1。本地模式只能给出统计，接上模型后这里会是具体的思维观察。
+
+【性格与状态】
+本地模式暂不做性格推断，接上模型后由 AI 结合长期档案给出。
+
+【给你的话】
+今天记了 3 条，从 20:51 到 20:51。能坚持记下来，本身就说明你在认真对待自己的日子。
+
+—— 依据 3 条记录 · 模型 fallback · 语言 zh
+```
+
+> `model fallback` 就是明确告诉你：这段是兜底，不是 AI 写的。
+
+### 5.4 人格档案
+
+输入：`memoir persona --distill`
+
+输出：
+
+```console
 本次学到 5 条人格观察
 
 我眼里的你
@@ -61,245 +268,78 @@ $ memoir persona --distill
 累计 3 条记录 / 1 天 / 1 份复盘
 ```
 
-每条观察都带**证据**和**置信度**。没有证据的观察不会进档案，模型不可用时的本地摘要也不会。
+> 每条观察都挂着它的出处。说不清来源的观察不会进档案。
 
+### 5.5 检索
 
+输入：`memoir search 插件`
+
+输出：
+
+```console
+与「插件」相关的记录（1 条）
+---------------
+[20:51] #1 (event) 上午改了插件的注册方式，还是没生效，有点烦 #编程
+```
 
 ---
 
-## 目录
-
-- [它做什么](#它做什么)
-- [快速开始](#快速开始)
-- [每晚自动复盘](#每晚自动复盘)
-- [人格档案](#人格档案)
-- [模型接入](#模型接入)
-- [插件](#插件)
-- [多语言](#多语言)
-- [隐私](#隐私)
-- [命令一览](#命令一览)
-- [项目结构](#项目结构)
-- [常见问题](#常见问题)
-
-## 它做什么
-
-| # | 能力 | 怎么做的 |
-|---|---|---|
-| 1 | **全天候记录** | `memoir add` 随手记，带类型（事件/想法/情绪/备注）、标签、情绪分；也可以管道喂、插件自动采 |
-| 2 | **每晚自动复盘** | 到点自动把当天所有记录还原成五段：做了什么 / 心里话 / 思维变化 / 性格状态 / 给你的话 |
-| 3 | **长期人格档案** | 每次复盘后蒸馏出"有证据的观察"，累积成画像；越用越准 |
-| 4 | **背靠任意模型** | 任何 OpenAI 兼容接口：Ollama、vLLM、LM Studio、llama.cpp、DeepSeek、Qwen…换模型只改三个环境变量 |
-| 5 | **插件扩展** | `~/.memoir/plugins/*.py` 丢进去就生效，不需要改主程序 |
-| 6 | **多国语言** | 中/英/日/韩；换语言 = 换提示词 = 换一个母语者在跟你说话 |
-| 7 | **完全本地** | 无服务器、无账号、无遥测；一个 .db 文件就是全部 |
-
-### 它不是什么
-
-- ❌ 不是网页套壳，没有 Web 界面，也没有云
-- ❌ 不是某个平台的插件/扩展
-- ❌ 不做日程管理、待办、笔记同步——只做「记忆 → 复盘 → 人格」
-
-### 没有模型也能用
-
-模型挂了不会让程序崩。复盘会降级成本地统计摘要，标注 `model=fallback`，并且**不会**把降级内容写进人格档案。
-
-## 快速开始
-
-需要 Python **3.10+**，没有第三方依赖。
-
-```bash
-git clone https://github.com/<you>/memoir.git
-cd memoir
-pip install -e .
-```
-
-或者不装，直接在仓库里跑：
-
-```bash
-python -m memoir --help
-```
-
-记第一条：
-
-```bash
-memoir add "今天把那个卡了三天的 bug 修了" --kind event --mood 2
-memoir add "修完其实没想象中爽，就是松了口气" --kind feeling
-memoir today
-```
-
-看一眼复盘（还没配模型，先看本地摘要）：
-
-```bash
-memoir review --offline
-```
-
-接上本机 Ollama，让复盘有内容：
-
-```bash
-ollama pull qwen2.5:7b
-export MEMOIR_BASE_URL=http://127.0.0.1:11434/v1
-export MEMOIR_MODEL=qwen2.5:7b
-memoir model      # 探活
-memoir review     # 真正的复盘
-```
-
-配好后每天跑一次：
-
-```bash
-memoir once       # 手动跑一次夜间任务（复盘 + 人格蒸馏）
-memoir daemon     # 常驻，每天 23:30 自动跑
-```
-
-## 每晚自动复盘
-
-`memoir daemon` 会一直挂着，到点干活。但更省心的做法是交给系统定时器。
-
-### Windows（任务计划程序）
-
-```powershell
-schtasks /create /tn "memoir nightly" /sc daily /st 23:30 ^
-  /tr "python -m memoir once"
-```
-
-### macOS / Linux（cron）
-
-```bash
-crontab -e
-# 每天 23:30
-30 23 * * * cd /path/to/memoir && /usr/bin/python3 -m memoir once >> ~/.memoir/cron.log 2>&1
-```
-
-### Linux（systemd，推荐常驻）
-
-```ini
-# ~/.config/systemd/user/memoir.service
-[Unit]
-Description=memoir nightly review
-
-[Service]
-ExecStart=/usr/bin/python3 -m memoir daemon
-WorkingDirectory=%h/memoir
-Environment=MEMOIR_BASE_URL=http://127.0.0.1:11434/v1
-Environment=MEMOIR_MODEL=qwen2.5:7b
-Restart=always
-
-[Install]
-WantedBy=default.target
-```
-
-```bash
-systemctl --user enable --now memoir
-```
-
-第二天早上 `memoir review --date 2026-10-30` 就能看到前一晚的结果。
-
-## 人格档案
-
-```bash
-memoir persona               # 看现在攒出了什么
-memoir persona --distill     # 手动触发一次蒸馏（默认每天复盘后自动做）
-```
-
-输出长这样：
-
-```
-我眼里的你
-=========
-
-## 性格
-- 对认定的事有股不服气，连续挫败后仍会再试  · 置信度 0.72（2026-10-28）
-
-## 软肋
-- 容易把"技术没弄成"读成"我不行"  · 置信度 0.61（2026-10-30: "是不是不适合折腾这些"）
-
-## 成长
-- 开始有意识地区分"累"和"不想做"  · 置信度 0.55（2026-10-30）
-
-累计 42 条记录 / 9 天 / 8 份复盘
-```
-
-每条都带**证据**和**置信度**。没有证据的观察不会进档案，降级的本地摘要也不会。
-
-## 模型接入
-
-任何 OpenAI 格式的 `/v1/chat/completions` 都能接：
-
-```bash
-export MEMOIR_BASE_URL=http://127.0.0.1:11434/v1   # Ollama
-export MEMOIR_MODEL=qwen2.5:7b
-export MEMOIR_API_KEY=                              # 本地留空
-```
-
-线上服务同理：
-
-```bash
-export MEMOIR_BASE_URL=https://api.deepseek.com/v1
-export MEMOIR_MODEL=deepseek-chat
-export MEMOIR_API_KEY=sk-xxxx
-```
-
-完整的服务清单、调参建议和排错见 [docs/03-models.md](docs/03-models.md)。
-
-## 插件
-
-把 .py 丢进 `~/.memoir/plugins/` 就生效：
-
-```python
-def on_entry_added(ctx, entry):
-    ctx.log(f"新记录 #{entry.id}: {entry.text[:20]}")
-```
-
-三个钩子：`on_startup` / `on_entry_added` / `on_review_ready`。
-插件异常会被隔离，不影响主流程。
-
-写法和限制见 [docs/02-plugins.md](docs/02-plugins.md)，示例见 [plugins/example_mood.py](plugins/example_mood.py)。
-
-## 多语言
-
-```bash
-memoir lang ja       # 界面 + 提示词 + 复盘输出，全变日文
-memoir --lang ko today
-```
-
-翻译机制、怎么加新语言见 [docs/04-languages.md](docs/04-languages.md)。
-
-## 隐私
+## 数据与隐私
 
 | 问题 | 答案 |
 |---|---|
-| 数据存在哪 | `~/.memoir/memoir.db`，一个 SQLite 文件 |
+| 存在哪 | `~/.memoir/`：`memoir.db`（记忆）、`config.json`、`memoir.log`、`plugins/` |
 | 会上传吗 | 不会。除了你配的模型接口，程序不发起任何网络请求 |
 | 有账号吗 | 没有 |
 | 有遥测吗 | 没有 |
-| 能带走吗 | `memoir export` 出完整 JSON |
-| 能彻底删掉吗 | 删掉那个 .db 文件即可 |
+| 能带走吗 | `memoir export` 输出全量 JSON |
+| 能删干净吗 | 删掉 `~/.memoir/` 即可 |
 
-用线上模型时，发给模型的是当天的记录文本（和已有档案）。这是使用线上模型的固有代价，不是 memoir 的额外行为。**最私密的用法是本地模型**。
+用线上模型时，发给模型的是当天的记录原文。这是用线上模型的固有代价，不是 memoir 额外干的。**最私密的用法是本地模型。**
 
 ## 命令一览
 
 | 命令 | 作用 |
 |---|---|
-| `memoir add <text>` | 记一条；`--kind` `--tags` `--mood` |
-| `memoir today [--date]` | 看某天的记录 |
-| `memoir review [--date] [--offline]` | 生成复盘 |
-| `memoir persona [--distill]` | 看/更新人格档案 |
-| `memoir search <query>` | 全文检索（中文可搜） |
-| `memoir stats` | 统计 |
-| `memoir export [-o file]` | 导出全部为 JSON |
-| `memoir plugins` | 插件列表与加载状态 |
-| `memoir model` | 探活模型 |
-| `memoir config [--edit]` | 查看/写配置 |
-| `memoir lang <code>` | 切语言 |
-| `memoir once [--date]` | 跑一次夜间任务 |
-| `memoir daemon` | 常驻，到点自动复盘 |
+| `add` | 记一条（`--kind` `--tags` `--mood` `--source`） |
+| `today [--date]` | 看某天的记录 |
+| `review [--date] [--offline] [--no-write]` | 生成复盘 |
+| `persona [--distill] [--days N]` | 看/更新人格档案 |
+| `search <query> [-n N]` | 全文检索 |
+| `stats` | 统计 |
+| `export [-o file]` | 导出 JSON |
+| `plugins` | 插件列表与加载状态 |
+| `model` | 探活模型 |
+| `config [--edit]` | 查看配置 |
+| `lang <zh\|en\|ja\|ko>` | 切语言 |
+| `once [--date]` | 跑一次夜间任务 |
+| `daemon` | 常驻定时 |
+
+全局参数：`--lang`（临时切语言）、`--home`（换数据目录）、`--version`。
+
+## 环境变量
+
+| 变量 | 默认 | 说明 |
+|---|---|---|
+| `MEMOIR_HOME` | `~/.memoir` | 数据目录 |
+| `MEMOIR_LANG` | `zh` | 界面语言 |
+| `MEMOIR_BASE_URL` | `http://127.0.0.1:11434/v1` | 模型接口 |
+| `MEMOIR_MODEL` | `qwen2.5:7b` | 模型名 |
+| `MEMOIR_API_KEY` | 空 | 本地模型留空 |
+| `MEMOIR_TEMPERATURE` | `0.7` | 采样温度 |
+| `MEMOIR_MAX_TOKENS` | `2048` | 单次上限 |
+| `MEMOIR_TIMEOUT` | `120` | 超时秒数 |
+| `MEMOIR_REVIEW_AT` | `23:30` | 守护进程触发时间 |
+
+环境变量 > `config.json` > 默认值。
 
 ## 项目结构
 
 ```
 memoir/
 ├── memoir/
-│   ├── config.py       配置（环境变量 > config.json > 默认）
+│   ├── config.py       配置加载
+│   ├── i18n.py         多语言与回退
 │   ├── storage.py      SQLite + FTS5
 │   ├── llm.py          OpenAI 兼容客户端（零依赖）
 │   ├── prompts.py      提示词组装
@@ -309,15 +349,9 @@ memoir/
 │   ├── scheduler.py    夜间调度
 │   ├── cli.py          命令行
 │   └── locales/        zh / en / ja / ko
-├── plugins/
-│   └── example_mood.py 示例插件
-├── docs/
-│   ├── 01-architecture.md
-│   ├── 02-plugins.md
-│   ├── 03-models.md
-│   └── 04-languages.md
-├── tests/
-│   └── test_smoke.py
+├── plugins/example_mood.py
+├── docs/               架构 / 插件 / 模型 / 多语言
+├── tests/test_smoke.py 11 个用例
 ├── pyproject.toml
 ├── .env.example
 └── LICENSE
@@ -325,26 +359,26 @@ memoir/
 
 ## 常见问题
 
-**复盘没内容 / 写着「模型不可用」**
+**复盘写着「模型不可用」**
 模型没连上。`memoir model` 看具体原因，检查 `MEMOIR_BASE_URL` 和模型名。
 
-**模型名字报 404**
-名必须和服务里一致。`curl -s $MEMOIR_BASE_URL/models` 查，Ollama 的名字常带 `:latest`。
+**报 404 model not found**
+名字必须和服务里一致。`curl -s $MEMOIR_BASE_URL/models` 查，Ollama 的名字常带 `:latest`。
 
-**复盘内容很空、像模板**
-换大一点的模型，或在 `config.json` 里把 `temperature` 调到 0.7 左右。
+**复盘像模板、很空**
+换大一点的模型，或把 `MEMOIR_TEMPERATURE` 调到 0.7。
 
-**同一天想重跑复盘**
-直接再跑 `memoir review`，会覆盖当天那份，不会堆重复。
+**同一天想重跑**
+直接再跑 `memoir review`，覆盖当天那份，不会堆重复。
 
 **记录写错了**
-目前用 SQL 或重新 `export` 修正。`memoir` 故意不提供批量编辑，避免误删记忆。
+`memoir export` 导出后修 JSON 再自行处理。程序故意不提供批量编辑，避免误删记忆。
 
 **中文搜索搜不到**
-FTS 用 trigram，1-2 个字会退回 LIKE；词越长越准。
+FTS 用 trigram，1~2 个字会退回 LIKE 匹配；词越长越准。
 
 **换电脑**
-整个 `~/.memoir` 目录拷走即可。想只说数据就拷那个 .db。
+整个 `~/.memoir/` 拷走即可；只要数据就拷 `memoir.db`。
 
 ## 开发
 
