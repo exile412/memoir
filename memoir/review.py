@@ -7,6 +7,7 @@
 
 from __future__ import annotations
 
+import re
 from collections import Counter
 from datetime import date as date_cls
 from datetime import datetime
@@ -17,6 +18,14 @@ from .i18n import I18N
 from .llm import LLMClient, LLMError, extract_json, unwrap_object
 from .models import Entry, Review
 from .prompts import REVIEW_KEYS, build_review_messages
+
+
+_CONTROL_CHARS = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]")
+
+
+def clean_text(text: str) -> str:
+    """剥掉控制字符（含 ANSI 转义），防止模型输出把终端搞乱。"""
+    return _CONTROL_CHARS.sub("", str(text))
 
 
 def _today() -> str:
@@ -57,6 +66,7 @@ def generate_review(
     day: str | None = None,
     force: bool = False,
     offline: bool = False,
+    persist: bool = True,
 ) -> Review | None:
     day = day or _today()
     entries = store.entries_for_day(day)
@@ -80,7 +90,7 @@ def generate_review(
                     if isinstance(value, list):
                         value = "; ".join(str(v) for v in value)
                     if value:
-                        sections[key] = str(value).strip()
+                        sections[key] = clean_text(str(value)).strip()
                 model_name = result.model
                 tokens = result.tokens
         except LLMError:
@@ -100,7 +110,8 @@ def generate_review(
         entries_count=len(entries),
         tokens=tokens,
     )
-    store.save_review(review)
+    if persist:
+        store.save_review(review)
     return review
 
 

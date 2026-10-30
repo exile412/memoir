@@ -66,7 +66,8 @@ flowchart LR
 |---|---|
 | `entries` | 每条记忆：时间、日期、类型、正文、标签、情绪分、来源、扩展字段 |
 | `entries_fts` | FTS5 虚表（trigram 分词），中文可搜；由触发器自动同步 |
-| `reviews` | 每日复盘，`day` 为主键（同一天重跑会覆盖，不会堆重复） |
+| `reviews` | 每日复盘，`day` 为主键（同一天重跑会覆盖） |
+| `reviews_history` | 被覆盖掉的旧复盘，自动归档，不丢历史 |
 | `persona_facts` | 人格观察：key / value / 置信度 / 证据 / 时间 |
 | `persona_snapshots` | 按天的人格状态快照 |
 
@@ -87,5 +88,6 @@ flowchart LR
 | 模型不返回 JSON | 同上，原文丢弃不落库 |
 | 模型超时 | 同上，可调 `MEMOIR_TIMEOUT` |
 | 插件抛异常 | 记日志，主流程继续 |
+| 模型输出含控制字符 | 渲染前剥除，避免终端转义注入 |
 
 降级产出的复盘不会污染人格档案——`model=fallback` 的复盘不参与蒸馏。

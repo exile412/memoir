@@ -15,6 +15,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Iterable
 
+from .config import restrict_permissions
 from .models import Entry, PersonaFact, Review
 
 SCHEMA = """
@@ -61,6 +62,18 @@ CREATE TABLE IF NOT EXISTS reviews (
     created_at    TEXT NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS reviews_history (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    day        TEXT NOT NULL,
+    locale     TEXT NOT NULL DEFAULT 'zh',
+    model      TEXT NOT NULL DEFAULT '',
+    sections   TEXT NOT NULL DEFAULT '{}',
+    summary    TEXT NOT NULL DEFAULT '',
+    entries_count INTEGER NOT NULL DEFAULT 0,
+    created_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_history_day ON reviews_history(day);
+
 CREATE TABLE IF NOT EXISTS persona_facts (
     id         INTEGER PRIMARY KEY AUTOINCREMENT,
     key        TEXT NOT NULL,
@@ -95,6 +108,7 @@ class Store:
         self.conn.execute("PRAGMA foreign_keys=ON")
         self.conn.executescript(SCHEMA)
         self.conn.commit()
+        restrict_permissions(self.path)
 
     # ---------------- 基础 ----------------
     def close(self) -> None:
@@ -230,7 +244,20 @@ class Store:
 
     # ---------------- 复盘 ----------------
     def save_review(self, review: Review) -> None:
+        """保存复盘。同一天重跑时，把旧版本先搬进 reviews_history，不丢历史。"""
         with self._lock:
+            old = self.conn.execute(
+                "SELECT * FROM reviews WHERE day = ?", (review.day,)
+            ).fetchone()
+            if old:
+                self.conn.execute(
+                    "INSERT INTO reviews_history(day, locale, model, sections, summary, entries_count, created_at)"
+                    " VALUES (?,?,?,?,?,?,?)",
+                    (
+                        old["day"], old["locale"], old["model"], old["sections"],
+                        old["summary"], old["entries_count"], old["created_at"],
+                    ),
+                )
             self.conn.execute(
                 "INSERT INTO reviews(day, locale, model, sections, summary, entries_count, tokens, created_at)"
                 " VALUES (?,?,?,?,?,?,?,?)"
@@ -270,6 +297,29 @@ class Store:
             entries_count=r["entries_count"] or 0,
             tokens=r["tokens"] or 0,
         )
+
+    def get_review_history(self, day: str, limit: int = 20) -> list[Review]:
+        """某一天被覆盖掉的旧复盘。"""
+        with self._lock:
+            rows = self.conn.execute(
+                "SELECT * FROM reviews_history WHERE day = ? ORDER BY id DESC LIMIT ?",
+                (day, limit),
+            ).fetchall()
+        out: list[Review] = []
+        for r in rows:
+            try:
+                sections = json.loads(r["sections"] or "{}")
+            except json.JSONDecodeError:
+                sections = {}
+            out.append(
+                Review(
+                    day=r["day"], locale=r["locale"], model=r["model"],
+                    sections=sections, summary=r["summary"] or "",
+                    created_at=r["created_at"] or "",
+                    entries_count=r["entries_count"] or 0,
+                )
+            )
+        return out
 
     def list_reviews(self, limit: int = 10) -> list[Review]:
         with self._lock:

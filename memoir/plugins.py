@@ -47,7 +47,12 @@ class PluginManager:
         return sorted(p for p in self.plugin_dir.glob("*.py") if not p.name.startswith("_"))
 
     def load_all(self) -> dict[str, Any]:
+        """加载插件。config.plugins_enabled 非空时，只加载名单里的。"""
+        allowed = {n.strip() for n in (self.ctx.config.plugins_enabled or []) if n.strip()}
         for path in self.discover():
+            if allowed and path.stem not in allowed:
+                self.ctx.log(f"[plugin:{path.stem}] 不在 plugins_enabled 名单内，跳过")
+                continue
             self.load_file(path)
         return self.plugins
 

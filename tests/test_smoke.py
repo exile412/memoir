@@ -143,6 +143,62 @@ def test_unwrap_and_normalize() -> None:
     assert _normalize_items("nope") is None
 
 
+def test_review_no_write_does_not_persist(tmp_path: Path) -> None:
+    """--no-write 必须是真预览：算出来但不落库。"""
+    cfg = _cfg(tmp_path)
+    i18n = I18N("zh")
+    with Store(tmp_path / "nw.db") as store:
+        store.add_entry("预览用", kind="event")
+        day = store.recent(1)[0].day
+        rv = generate_review(store, cfg, i18n, day=day, offline=True, persist=False)
+        assert rv is not None
+        assert rv.sections["events"]
+        assert store.get_review(day) is None
+        # 落库版本仍然正常
+        generate_review(store, cfg, i18n, day=day, offline=True)
+        assert store.get_review(day) is not None
+
+
+def test_review_overwrite_keeps_history(tmp_path: Path) -> None:
+    """同一天重跑不能把旧复盘弄丢。"""
+    cfg = _cfg(tmp_path)
+    i18n = I18N("zh")
+    with Store(tmp_path / "h.db") as store:
+        store.add_entry("会重跑的一天", kind="event")
+        day = store.recent(1)[0].day
+        generate_review(store, cfg, i18n, day=day, offline=True)
+        generate_review(store, cfg, i18n, day=day, offline=True)
+        generate_review(store, cfg, i18n, day=day, offline=True)
+        assert len(store.get_review_history(day)) == 2
+        assert store.get_review(day) is not None
+
+
+def test_clean_text_strips_control_chars() -> None:
+    from memoir.review import clean_text
+
+    assert clean_text("a\x1b[31mb") == "a[31mb"
+    assert clean_text("正常\n换行") == "正常\n换行"
+    assert clean_text("\x00\x07ok") == "ok"
+
+
+def test_plugins_allowlist(tmp_path: Path) -> None:
+    """plugins_enabled 非空时，只加载名单里的插件。"""
+    from memoir.plugins import PluginManager, PluginContext
+
+    cfg = _cfg(tmp_path)
+    plugin_dir = cfg.plugin_dir
+    (plugin_dir / "alpha.py").write_text("def on_startup(ctx):\n    ctx.log('alpha')\n", encoding="utf-8")
+    (plugin_dir / "beta.py").write_text("def on_startup(ctx):\n    ctx.log('beta')\n", encoding="utf-8")
+
+    with Store(tmp_path / "pl.db") as store:
+        ctx = PluginContext(config=cfg, store=store, i18n=I18N("zh"), logger=lambda m: None)
+        cfg.plugins_enabled = ["alpha"]
+        pm = PluginManager(ctx, plugin_dir=plugin_dir)
+        loaded = pm.load_all()
+        assert "alpha" in loaded
+        assert "beta" not in loaded
+
+
 def test_export_shape(tmp_path: Path) -> None:
     with Store(tmp_path / "x.db") as store:
         store.add_entry("一条")

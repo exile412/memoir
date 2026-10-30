@@ -113,7 +113,9 @@ def cmd_today(app: App, args: argparse.Namespace) -> int:
 def cmd_review(app: App, args: argparse.Namespace) -> int:
     day = args.date or date.today().isoformat()
     review = generate_review(
-        app.store, app.cfg, app.i18n, day=day, force=args.force, offline=args.offline
+        app.store, app.cfg, app.i18n,
+        day=day, force=args.force, offline=args.offline,
+        persist=not args.no_write,
     )
     if review is None:
         app.echo(app.i18n.t("cli.review_none", date=day))

@@ -16,6 +16,14 @@ LANG_CHOICES = ("zh", "en", "ja", "ko")
 DEFAULT_REVIEW_AT = "23:30"
 
 
+def restrict_permissions(path: Path) -> None:
+    """把含密钥的文件收紧到仅本人可读写。失败不致命。"""
+    try:
+        os.chmod(path, 0o600)
+    except OSError:
+        pass
+
+
 def default_home() -> Path:
     env = os.environ.get("MEMOIR_HOME")
     if env:
@@ -118,6 +126,11 @@ class Config:
         return cfg
 
     def save(self) -> Path:
+        """把配置写入 config.json。
+
+        注意：文件里含 api_key 明文，落盘后立刻收紧权限（POSIX 上 600）。
+        Windows 的 chmod 只能控制只读位，真正的隔离靠用户目录 ACL。
+        """
         self.ensure_dirs()
         payload = {
             "lang": self.lang,
@@ -130,4 +143,5 @@ class Config:
         self.config_path.write_text(
             json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8"
         )
+        restrict_permissions(self.config_path)
         return self.config_path

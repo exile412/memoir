@@ -37,11 +37,13 @@ def build_review_messages(
     facts: Sequence[dict[str, Any]],
 ) -> list[dict[str, str]]:
     system = i18n.t("prompts.review_system")
+    # 用标签把「数据」和「指令」隔开：记录里出现命令式语句时，
+    # 模型仍然只当内容处理（对应 prompt 注入的缓解）
     user = i18n.t(
         "prompts.review_user",
         date=day,
         count=str(len(entries)),
-        entries=_fmt_entries(entries),
+        entries="<records>\n" + _fmt_entries(entries) + "\n</records>",
         persona=_fmt_persona(facts),
         schema=i18n.t("prompts.review_schema"),
     )
@@ -61,7 +63,7 @@ def build_persona_messages(
         blocks.append(f"### {rv.get('day')}\n{body or '(空)'}")
     user = i18n.t(
         "prompts.persona_user",
-        reviews="\n\n".join(blocks) or "-",
+        reviews="<reviews>\n" + ("\n\n".join(blocks) or "-") + "\n</reviews>",
         persona=_fmt_persona(facts),
         schema=i18n.t("prompts.persona_schema"),
     )

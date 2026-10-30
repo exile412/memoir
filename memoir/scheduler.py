@@ -67,6 +67,9 @@ def run_daemon(
     offline: bool = False,
     log: Any = print,
 ) -> None:
+    if not cfg.auto_review:
+        log(i18n.t("scheduler.disabled"))
+        return
     log(i18n.t("scheduler.started", at=cfg.review_at))
     while True:
         target = next_run(cfg.review_at)
