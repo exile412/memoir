@@ -88,7 +88,7 @@ class NavItem(tk.Canvas):
 
     def __init__(self, master: tk.Misc, label: str, icon: str,
                  command: Callable[[], None], active: bool = False):
-        super().__init__(master, height=44, bg=T.BG_SIDE, highlightthickness=0,
+        super().__init__(master, height=52, bg=T.BG_SIDE, highlightthickness=0,
                          bd=0, cursor="hand2")
         self._label = label
         self._icon = icon
@@ -114,15 +114,16 @@ class NavItem(tk.Canvas):
 
     def _paint(self) -> None:
         self.delete("all")
+        h = self.winfo_height() or 52
         w = self.winfo_width() or T.SIDEBAR_W
         color = T.CYAN if self._active else (T.INK_2 if self._hover else T.INK_3)
         if self._active:
-            self.create_rectangle(0, 0, w, 44, fill=T.GLOW, outline="")
-            self.create_rectangle(0, 8, 2, 36, fill=T.CYAN, outline="")
+            self.create_rectangle(0, 0, w, h, fill=T.GLOW, outline="")
+            self.create_rectangle(0, 10, 2, h - 10, fill=T.CYAN, outline="")
         elif self._hover:
-            self.create_rectangle(0, 6, w, 38, fill=T.BG_CARD, outline="")
-        self._draw_icon(28, 22, color)
-        self.create_text(48, 23, text=self._label, anchor="w",
+            self.create_rectangle(0, 7, w, h - 7, fill=T.BG_CARD, outline="")
+        self._draw_icon(30, h / 2, color)
+        self.create_text(52, h / 2 + 1, text=self._label, anchor="w",
                          fill=T.INK if self._active else color,
                          font=T.F(13, "bold" if self._active else "normal"))
 

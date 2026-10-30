@@ -47,8 +47,8 @@ def _dpi_aware() -> None:
 class MemoryList(tk.Canvas):
     """记忆列表：整块 Canvas 自绘，行高固定，支持滚动 / 悬浮 / 选中。"""
 
-    ROW_H = 76
-    CARD_H = 64
+    ROW_H = T.ROW_H
+    CARD_H = T.ROW_CARD_H
 
     def __init__(self, master: tk.Misc, on_select: Callable[[int | None], None]):
         super().__init__(master, bg=T.BG_BASE, highlightthickness=0, bd=0)
@@ -121,17 +121,17 @@ class MemoryList(tk.Canvas):
 
         # 时间块
         stamp = e.ts[11:16] if len(e.ts) >= 16 else e.ts
-        self.create_text(78, cy, text=stamp, anchor="e", fill=T.INK_3, font=T.F(12, family="mono"))
-        self.create_line(98, cy - 12, 98, cy + 12, fill=T.LINE_HAIR)
+        self.create_text(86, cy, text=stamp, anchor="e", fill=T.INK_3, font=T.F(13, family="mono"))
+        self.create_line(106, cy - 14, 106, cy + 14, fill=T.LINE_HAIR)
         # 类型块
-        kc = T.KIND_COLORS.get(e.kind, T.INK_2)
-        self.create_oval(114, cy - 3, 120, cy + 3, fill=kc, outline="")
-        self.create_text(128, cy, text=T.KIND_LABEL.get(e.kind, e.kind), anchor="w",
-                         fill=T.INK_2, font=T.F(12))
-        self.create_line(172, cy - 12, 172, cy + 12, fill=T.LINE_HAIR)
+        kc = T.kind_color(e.kind)
+        self.create_oval(122, cy - 3.5, 129, cy + 3.5, fill=kc, outline="")
+        self.create_text(138, cy + 1, text=T.kind_label(e.kind), anchor="w",
+                         fill=T.INK_2, font=T.F(13))
+        self.create_line(188, cy - 14, 188, cy + 14, fill=T.LINE_HAIR)
         # 内容块
-        body = e.text if len(e.text) <= 46 else e.text[:46] + "…"
-        self.create_text(192, cy, text=body, anchor="w", fill=T.INK, font=T.F(15, family="serif"))
+        body = e.text if len(e.text) <= 42 else e.text[:42] + "…"
+        self.create_text(208, cy + 1, text=body, anchor="w", fill=T.INK, font=T.F(15, family="serif"))
 
 
 class MemoirApp(tk.Tk):
@@ -145,6 +145,9 @@ class MemoirApp(tk.Tk):
         self._busy = False
         self._page = "memory"
         self._navs: dict[str, NavItem] = {}
+        self.custom_kinds: list[dict] = list(cfg.extra.get("custom_kinds", []))
+        T.register_custom_kinds(self.custom_kinds)
+        self._kind_filter: str | None = None
 
         self.title(f"memoir · 记忆   v{__version__}")
         self.geometry("1280x800")
@@ -213,11 +216,11 @@ class MemoirApp(tk.Tk):
         top.pack(fill="x")
         top.pack_propagate(False)
         self._title = tk.Label(top, text="记忆库", bg=T.BG_BASE, fg=T.INK, font=T.F(20, "bold"))
-        self._title.place(x=T.PAD, y=13)
+        self._title.place(x=T.PAD, y=14)
 
         search_wrap = tk.Frame(top, bg=T.BG_INPUT, highlightthickness=1,
                                highlightbackground=T.LINE_HAIR, highlightcolor=T.CYAN)
-        search_wrap.place(relx=1.0, x=-64, y=12, width=232, height=32, anchor="ne")
+        search_wrap.place(relx=1.0, x=-64, y=14, width=250, height=36, anchor="ne")
         search_wrap.pack_propagate(False)
         tk.Label(search_wrap, text="⌕", bg=T.BG_CARD, fg=T.INK_3,
                  font=T.F(14)).pack(side="left", padx=(10, 4))
@@ -262,7 +265,7 @@ class MemoirApp(tk.Tk):
 
     # ---- 记忆库 ----
     def _build_memory_page(self, parent: tk.Frame) -> None:
-        composer = Card(parent, height=152, bg=T.BG_CARD, parent_bg=T.BG_BASE)
+        composer = Card(parent, height=176, bg=T.BG_CARD, parent_bg=T.BG_BASE)
         composer.pack(fill="x")
 
         self._entry = tk.Text(composer, height=3, bg=T.BG_INPUT, fg=T.INK, relief="flat",
@@ -270,7 +273,7 @@ class MemoirApp(tk.Tk):
                               highlightthickness=1, highlightbackground=T.LINE_HAIR,
                               highlightcolor=T.CYAN, bd=0, wrap="word",
                               padx=12, pady=8)
-        self._entry.place(x=20, y=16, relwidth=1.0, width=-40, height=70)
+        self._entry.place(x=20, y=16, relwidth=1.0, width=-40, height=86)
         self._entry.insert("1.0", "现在在想什么…")
         self._entry.configure(fg=T.INK_3)
         self._placeholder_on = True
@@ -291,17 +294,18 @@ class MemoirApp(tk.Tk):
         self._entry.bind("<FocusOut>", _focus_out)
         self._entry.bind("<Control-Return>", lambda e: (self._add_entry(), "break")[1])
 
-        self._kind_var = tk.StringVar(value="event")
-        kind_box = tk.OptionMenu(composer, self._kind_var, *KINDS)
+        self._kind_var = tk.StringVar(value=T.kind_label("event"))
+        kind_box = tk.OptionMenu(composer, self._kind_var, *[lbl for _, lbl, _ in T.all_kinds()])
+        self._kind_box = kind_box
         kind_box.configure(bg=T.BG_CARD, fg=T.INK_2, activebackground=T.GLOW,
                            activeforeground=T.CYAN, relief="flat", bd=0,
                            highlightthickness=0, font=T.F(12))
         kind_box["menu"].configure(bg=T.BG_CARD, fg=T.INK_2, activebackground=T.GLOW,
                                    activeforeground=T.CYAN, font=T.F(12), bd=0)
-        kind_box.place(x=18, y=100, width=96, height=34)
+        kind_box.place(x=18, y=118, width=112, height=38)
 
         FlatButton(composer, "记下来", self._add_entry, kind="primary",
-                   width=104, height=34, parent_bg=T.BG_CARD).place(relx=1.0, x=-18, y=100, anchor="ne")
+                   width=112, height=38, parent_bg=T.BG_CARD).place(relx=1.0, x=-18, y=118, anchor="ne")
 
         head = tk.Frame(parent, bg=T.BG_BASE)
         head.pack(fill="x", pady=(18, 8))
@@ -317,7 +321,7 @@ class MemoirApp(tk.Tk):
         foot = tk.Frame(parent, bg=T.BG_BASE)
         foot.pack(fill="x", pady=(8, 0))
         FlatButton(foot, "删除选中", self._delete_selected, kind="ghost",
-                   width=100, height=30, parent_bg=T.BG_BASE).pack(side="left")
+                   width=108, height=34, parent_bg=T.BG_BASE).pack(side="left")
 
     # ---------------- 右栏 ----------------
     def _build_panel(self) -> None:
@@ -340,9 +344,12 @@ class MemoirApp(tk.Tk):
                  font=T.F(13, "bold")).pack(anchor="w", pady=(0, 10))
         chips = tk.Frame(self._panel_body, bg=T.BG_PANEL)
         chips.pack(fill="x")
-        for i, k in enumerate(KINDS):
-            Chip(chips, T.KIND_LABEL[k], active=(i == 0), dot=T.KIND_COLORS[k],
-                 parent_bg=T.BG_PANEL).grid(row=i // 2, column=i % 2, padx=(0, 8), pady=(0, 8))
+        for i, (key, label, color) in enumerate(T.all_kinds()):
+            w = max(80, len(label) * 14 + 40)
+            Chip(chips, label, active=(self._kind_filter == key), dot=color,
+                 parent_bg=T.BG_PANEL, width=w,
+                 command=lambda k=key: self._toggle_kind(k)
+                 ).grid(row=i // 2, column=i % 2, padx=(0, 8), pady=(0, 8))
 
         HairLine(self._panel_body, parent_bg=T.BG_PANEL).pack(fill="x", pady=(14, 14))
         tk.Label(self._panel_body, text="语言", bg=T.BG_PANEL, fg=T.INK,
@@ -371,7 +378,7 @@ class MemoirApp(tk.Tk):
                              fg=T.INK_2, selectcolor=T.BG_CARD, activebackground=T.BG_BASE,
                              activeforeground=T.CYAN, font=T.F(12), bd=0, highlightthickness=0)
         chk.pack(side="left")
-        FlatButton(bar, "生成复盘", self._run_review, kind="primary", width=100, height=32,
+        FlatButton(bar, "生成复盘", self._run_review, kind="primary", width=110, height=36,
                    parent_bg=T.BG_BASE).pack(side="right")
 
         self._review_text = self._make_reader(parent)
@@ -380,15 +387,15 @@ class MemoirApp(tk.Tk):
     def _build_persona_page(self, parent: tk.Frame) -> None:
         bar = tk.Frame(parent, bg=T.BG_BASE)
         bar.pack(fill="x", pady=(0, 12))
-        FlatButton(bar, "从最近复盘学习", self._run_distill, kind="primary", width=132,
-                   height=32, parent_bg=T.BG_BASE).pack(side="left")
-        FlatButton(bar, "刷新", self._refresh_persona, kind="ghost", width=72, height=32,
+        FlatButton(bar, "从最近复盘学习", self._run_distill, kind="primary", width=146,
+                   height=36, parent_bg=T.BG_BASE).pack(side="left")
+        FlatButton(bar, "刷新", self._refresh_persona, kind="ghost", width=80, height=36,
                    parent_bg=T.BG_BASE).pack(side="left", padx=10)
         self._persona_text = self._make_reader(parent)
 
     # ---- 设置 ----
     def _build_settings_page(self, parent: tk.Frame) -> None:
-        card = Card(parent, height=420, parent_bg=T.BG_BASE)
+        card = Card(parent, height=430, parent_bg=T.BG_BASE)
         card.pack(fill="x")
         self._set_vars: dict[str, tk.StringVar] = {
             "base_url": tk.StringVar(value=self.cfg.model.base_url),
@@ -408,17 +415,41 @@ class MemoirApp(tk.Tk):
                          relief="flat", insertbackground=T.CYAN, font=T.F(13),
                          highlightthickness=1, highlightbackground=T.LINE_HAIR,
                          highlightcolor=T.CYAN)
-            e.place(x=140, y=y, width=420, height=32)
+            e.place(x=150, y=y, width=430, height=36)
 
         self._settings_hint = tk.Label(card, text="", bg=T.BG_CARD, fg=T.INK_3, font=T.F(12))
-        self._settings_hint.place(x=24, y=348)
+        self._settings_hint.place(x=24, y=310)
         FlatButton(card, "保存配置", self._save_settings, kind="primary", width=104, height=34,
-                   parent_bg=T.BG_CARD).place(x=20, y=378)
+                   parent_bg=T.BG_CARD).place(x=20, y=352)
         FlatButton(card, "测试连接", self._test_model, kind="ghost", width=104, height=34,
-                   parent_bg=T.BG_CARD).place(x=136, y=378)
+                   parent_bg=T.BG_CARD).place(x=146, y=352)
+
+        kinds_card = Card(parent, height=200, parent_bg=T.BG_BASE)
+        kinds_card.pack(fill="x", pady=(12, 0))
+        tk.Label(kinds_card, text="自定义类型", bg=T.BG_CARD, fg=T.INK,
+                 font=T.F(14, "bold")).place(x=24, y=20)
+        tk.Label(kinds_card, text="加完就能在记录里选它，也会出现在右侧筛选里",
+                 bg=T.BG_CARD, fg=T.INK_3, font=T.F(12)).place(x=24, y=46)
+
+        self._new_kind = tk.StringVar()
+        ke = tk.Entry(kinds_card, textvariable=self._new_kind, bg=T.BG_INPUT, fg=T.INK,
+                      relief="flat", insertbackground=T.CYAN, font=T.F(13),
+                      highlightthickness=1, highlightbackground=T.LINE_HAIR,
+                      highlightcolor=T.CYAN)
+        ke.place(x=24, y=76, width=300, height=36)
+        ke.bind("<Return>", lambda e: self._add_custom_kind())
+        FlatButton(kinds_card, "添加", self._add_custom_kind, kind="primary",
+                   width=88, height=36, parent_bg=T.BG_CARD).place(x=334, y=76)
+
+        self._kind_hint = tk.Label(kinds_card, text="", bg=T.BG_CARD, fg=T.INK_3, font=T.F(12))
+        self._kind_hint.place(x=24, y=122)
+
+        self._kind_rows = tk.Frame(kinds_card, bg=T.BG_CARD)
+        self._kind_rows.place(x=24, y=150)
+        self._refresh_kind_list()
 
         info = tk.Label(parent, text=f"数据目录：{self.cfg.home}", bg=T.BG_BASE, fg=T.INK_3,
-                        font=T.F(12))
+                        font=T.F(13))
         info.pack(anchor="w", pady=(16, 0))
 
     # ---- 插件 ----
@@ -437,8 +468,18 @@ class MemoirApp(tk.Tk):
         pm.load_all()
         rows = pm.describe()
         if not rows:
-            tk.Label(self._plugins_box, text="还没有插件。把 .py 放进 " + str(self.cfg.plugin_dir),
-                     bg=T.BG_BASE, fg=T.INK_3, font=T.F(13)).pack(anchor="w")
+            tk.Label(self._plugins_box, text="还没有插件", bg=T.BG_BASE, fg=T.INK,
+                     font=T.F(15, "bold")).pack(anchor="w")
+            tk.Label(self._plugins_box,
+                     text="插件是一个 .py 文件，放进去就会自动加载。\n" + str(self.cfg.plugin_dir),
+                     bg=T.BG_BASE, fg=T.INK_3, font=T.F(13), justify="left"
+                     ).pack(anchor="w", pady=(8, 16))
+            row = tk.Frame(self._plugins_box, bg=T.BG_BASE)
+            row.pack(anchor="w")
+            FlatButton(row, "安装示例插件", self._install_example_plugin, kind="primary",
+                       width=132, height=36, parent_bg=T.BG_BASE).pack(side="left")
+            FlatButton(row, "打开插件目录", self._open_plugin_dir, kind="ghost",
+                       width=124, height=36, parent_bg=T.BG_BASE).pack(side="left", padx=10)
             return
         for r in rows:
             card = Card(self._plugins_box, height=72, parent_bg=T.BG_BASE)
@@ -499,7 +540,8 @@ class MemoirApp(tk.Tk):
         text = self._entry.get("1.0", "end").strip()
         if not text:
             return
-        self.store.add_entry(text=text, kind=self._kind_var.get(), source="desktop")
+        kind = self._label_to_key(self._kind_var.get())
+        self.store.add_entry(text=text, kind=kind, source="desktop")
         self._entry.delete("1.0", "end")
         self._entry.insert("1.0", "现在在想什么…")
         self._entry.configure(fg=T.INK_3)
@@ -511,14 +553,57 @@ class MemoirApp(tk.Tk):
         entries = self.store.search(q, limit=200) if q else self.store.entries_for_day(date.today().isoformat())
         if not search:
             entries = list(reversed(entries))
+        if self._kind_filter:
+            entries = [e for e in entries if e.kind == self._kind_filter]
         self._list.set_entries(entries)
-        self._count_label.configure(
-            text=(f"搜索「{q}」· {len(entries)} 条" if q else f"今天 {len(entries)} 条")
-        )
+        if q:
+            tail = f"搜索「{q}」· {len(entries)} 条"
+        elif self._kind_filter:
+            tail = f"{T.kind_label(self._kind_filter)} · {len(entries)} 条"
+        else:
+            tail = f"今天 {len(entries)} 条"
+        self._count_label.configure(text=tail)
         self._render_panel()
 
     def _on_row_selected(self, idx: int | None) -> None:
         pass
+
+    # ---- 类型 ----
+    def _label_to_key(self, label: str) -> str:
+        for key, lab, _ in T.all_kinds():
+            if lab == label:
+                return key
+        return label
+
+    def _toggle_kind(self, key: str) -> None:
+        """点同一个就是取消筛选。"""
+        self._kind_filter = None if self._kind_filter == key else key
+        self._refresh_today()
+
+    def _rebuild_kind_options(self) -> None:
+        menu = self._kind_box["menu"]
+        menu.delete(0, "end")
+        for _, label, _ in T.all_kinds():
+            menu.add_command(label=label, command=lambda l=label: self._kind_var.set(l))
+
+    def _add_custom_kind(self) -> None:
+        name = self._new_kind.get().strip()
+        if not name:
+            return
+        existing = {k for k, _, _ in T.all_kinds()}
+        if name in existing:
+            self._kind_hint.configure(text=f"「{name}」已存在", fg=T.WARN)
+            return
+        color = T.custom_kind_color(len(self.custom_kinds))
+        self.custom_kinds.append({"key": name, "label": name, "color": color})
+        self.cfg.extra["custom_kinds"] = self.custom_kinds
+        self.cfg.save()
+        T.register_custom_kinds(self.custom_kinds)
+        self._new_kind.set("")
+        self._rebuild_kind_options()
+        self._render_panel()
+        self._refresh_kind_list()
+        self._kind_hint.configure(text=f"已添加「{name}」", fg=T.CYAN)
 
     def _do_search(self) -> None:
         if getattr(self, "_search_on", True):
@@ -638,6 +723,84 @@ class MemoirApp(tk.Tk):
             self._status.configure(text=text, fg=T.INK_2)
             self._dot.delete("all")
             self._dot.create_oval(1, 1, 9, 9, fill=color, outline="")
+
+    def _refresh_kind_list(self) -> None:
+        for w in self._kind_rows.winfo_children():
+            w.destroy()
+        if not self.custom_kinds:
+            tk.Label(self._kind_rows, text="还没有自定义类型", bg=T.BG_CARD, fg=T.INK_3,
+                     font=T.F(12)).pack(side="left")
+            return
+        for item in list(self.custom_kinds):
+            key = item.get("key", "")
+            chip = tk.Label(self._kind_rows, text=f"{item.get('label', key)}  ×", bg=T.GLOW,
+                            fg=T.CYAN, font=T.F(12), padx=10, pady=4, cursor="hand2")
+            chip.pack(side="left", padx=(0, 8))
+            chip.bind("<Button-1>", lambda e, k=key: self._remove_custom_kind(k))
+
+    def _remove_custom_kind(self, key: str) -> None:
+        self.custom_kinds = [c for c in self.custom_kinds if c.get("key") != key]
+        self.cfg.extra["custom_kinds"] = self.custom_kinds
+        self.cfg.save()
+        T.register_custom_kinds(self.custom_kinds)
+        if self._kind_filter == key:
+            self._kind_filter = None
+        self._rebuild_kind_options()
+        self._refresh_kind_list()
+        self._render_panel()
+        self._kind_hint.configure(text="已移除", fg=T.INK_3)
+
+    def _install_example_plugin(self) -> None:
+        from pathlib import Path
+
+        demo = '''"""示例插件：情绪词打分 + 记录条数统计。
+
+三个钩子都可以不写，写了哪个就触发哪个。
+"""
+
+__version__ = "1.0.0"
+
+POSITIVE = ("开心", "顺利", "搞定", "很好", "喜欢", "进展")
+NEGATIVE = ("烦", "累", "崩", "失败", "卡住", "焦虑", "难受")
+
+
+def _score(text: str) -> int:
+    t = text.lower()
+    return sum(w in t for w in POSITIVE) - sum(w in t for w in NEGATIVE)
+
+
+def on_startup(ctx):
+    ctx.log("[example] 已加载")
+
+
+def on_entry_added(ctx, entry):
+    score = _score(entry.text)
+    if score:
+        ctx.log(f"[example] #{entry.id} 情绪分 {score:+d}")
+
+
+def on_review_ready(ctx, review):
+    ctx.log(f"[example] {review.day} 共 {review.entries_count} 条")
+'''
+        target = Path(self.cfg.plugin_dir) / "example_mood.py"
+        target.write_text(demo, encoding="utf-8")
+        self._refresh_plugins()
+
+    def _open_plugin_dir(self) -> None:
+        import os
+        import subprocess
+        import sys
+
+        path = str(self.cfg.plugin_dir)
+        try:
+            if sys.platform == "win32":
+                os.startfile(path)  # type: ignore[attr-defined]
+            elif sys.platform == "darwin":
+                subprocess.Popen(["open", path])
+            else:
+                subprocess.Popen(["xdg-open", path])
+        except Exception as exc:  # noqa: BLE001
+            self._kind_hint.configure(text=f"打不开：{exc}", fg=T.ERROR)
 
     def _on_close(self) -> None:
         try:
