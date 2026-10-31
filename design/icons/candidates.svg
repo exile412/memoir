@@ -1,0 +1,65 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="880" height="652" viewBox="0 0 880 652">
+  <rect width="880" height="652" fill="#0A1018"/>
+  <text x="28" y="38" font-size="19" fill="#E3EBF5" font-family="Microsoft YaHei UI, sans-serif">memoir 图标候选（256×256，深蓝底 + 浅青线条）</text>
+  <g transform="translate(28,84)">
+    <rect width="256" height="256" rx="52" fill="#0F1724"/>
+    
+    <rect x="52" y="58" width="96" height="140" rx="10" fill="none" stroke="#6FD3D8" stroke-width="7"/>
+    <line x1="52" y1="94" x2="148" y2="94" stroke="#3E8FA0" stroke-width="5"/>
+    <line x1="72" y1="120" x2="128" y2="120" stroke="#3E8FA0" stroke-width="5" opacity="0.6"/>
+    <line x1="72" y1="144" x2="128" y2="144" stroke="#3E8FA0" stroke-width="5" opacity="0.6"/>
+    <path d="M160 158 C 190 158, 206 176, 196 194 L 214 186 C 216 206, 200 216, 186 210 C 188 192, 176 178, 160 158 Z" fill="#6FD3D8"/>
+  
+    <text x="128" y="284" font-size="17" fill="#93A6BF" text-anchor="middle" font-family="Microsoft YaHei UI, sans-serif">1. 书本 + 鲸尾</text>
+  </g><g transform="translate(312,84)">
+    <rect width="256" height="256" rx="52" fill="#0F1724"/>
+    
+    <ellipse cx="128" cy="128" rx="64" ry="56" fill="none" stroke="#6FD3D8" stroke-width="7"/>
+    <path d="M128 72 L128 184" stroke="#3E8FA0" stroke-width="5"/>
+    <circle cx="94" cy="106" r="10" fill="#6FD3D8"/>
+    <circle cx="162" cy="106" r="10" fill="#6FD3D8"/>
+    <circle cx="104" cy="156" r="10" fill="#6FD3D8"/>
+    <circle cx="156" cy="156" r="10" fill="#6FD3D8"/>
+    <path d="M94 106 L128 130 L162 106 M104 156 L128 130 L156 156" stroke="#3E8FA0" stroke-width="4" fill="none"/>
+  
+    <text x="128" y="284" font-size="17" fill="#93A6BF" text-anchor="middle" font-family="Microsoft YaHei UI, sans-serif">2. 记忆节点</text>
+  </g><g transform="translate(596,84)">
+    <rect width="256" height="256" rx="52" fill="#0F1724"/>
+    
+    <path d="M64 146 C 64 118, 100 104, 142 104 C 176 104, 196 118, 202 134 L 224 120 L 218 146 L 224 172 L 202 158 C 196 176, 176 190, 142 190 C 100 190, 64 176, 64 146 Z" fill="#6FD3D8"/>
+    <circle cx="112" cy="132" r="6.5" fill="#0F1724"/>
+    <path d="M142 104 C 144 84, 164 80, 172 92" fill="none" stroke="#6FD3D8" stroke-width="6" stroke-linecap="round"/>
+    <path d="M96 168 C 112 176, 130 176, 144 170" stroke="#0F1724" stroke-width="4" fill="none" opacity="0.35" stroke-linecap="round"/>
+  
+    <text x="128" y="284" font-size="17" fill="#93A6BF" text-anchor="middle" font-family="Microsoft YaHei UI, sans-serif">3. 鲸鱼 + 分叉尾</text>
+  </g><g transform="translate(28,368)">
+    <rect width="256" height="256" rx="52" fill="#0F1724"/>
+    
+    <rect x="64" y="56" width="128" height="152" rx="14" fill="none" stroke="#6FD3D8" stroke-width="7"/>
+    <line x1="92" y1="56" x2="92" y2="208" stroke="#3E8FA0" stroke-width="5"/>
+    <circle cx="130" cy="104" r="7.5" fill="#6FD3D8"/>
+    <line x1="152" y1="104" x2="174" y2="104" stroke="#6FD3D8" stroke-width="6" stroke-linecap="round"/>
+    <circle cx="130" cy="140" r="7.5" fill="#6FD3D8"/>
+    <line x1="152" y1="140" x2="174" y2="140" stroke="#6FD3D8" stroke-width="6" stroke-linecap="round"/>
+    <circle cx="130" cy="176" r="7.5" fill="#3E8FA0"/>
+  
+    <text x="128" y="284" font-size="17" fill="#93A6BF" text-anchor="middle" font-family="Microsoft YaHei UI, sans-serif">4. 笔记本 + 圆点</text>
+  </g><g transform="translate(312,368)">
+    <rect width="256" height="256" rx="52" fill="#0F1724"/>
+    
+    <circle cx="128" cy="132" r="22" fill="none" stroke="#6FD3D8" stroke-width="7"/>
+    <circle cx="128" cy="132" r="52" fill="none" stroke="#3E8FA0" stroke-width="5" stroke-dasharray="9 13"/>
+    <circle cx="128" cy="132" r="80" fill="none" stroke="#3E8FA0" stroke-width="4" opacity="0.45"/>
+    <circle cx="128" cy="132" r="6.5" fill="#6FD3D8"/>
+  
+    <text x="128" y="284" font-size="17" fill="#93A6BF" text-anchor="middle" font-family="Microsoft YaHei UI, sans-serif">5. 记忆涟漪</text>
+  </g><g transform="translate(596,368)">
+    <rect width="256" height="256" rx="52" fill="#0F1724"/>
+    
+    <rect x="56" y="58" width="144" height="140" rx="12" fill="none" stroke="#6FD3D8" stroke-width="8"/>
+    <path d="M84 168 L84 88 L118 142 L152 88 L152 168" fill="none" stroke="#6FD3D8" stroke-width="9" stroke-linejoin="round" stroke-linecap="round"/>
+    <line x1="176" y1="88" x2="176" y2="168" stroke="#3E8FA0" stroke-width="6" stroke-linecap="round"/>
+  
+    <text x="128" y="284" font-size="17" fill="#93A6BF" text-anchor="middle" font-family="Microsoft YaHei UI, sans-serif">6. 书脊 M</text>
+  </g>
+</svg>
