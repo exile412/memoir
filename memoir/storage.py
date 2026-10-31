@@ -22,6 +22,7 @@ SCHEMA = """
 CREATE TABLE IF NOT EXISTS entries (
     id      INTEGER PRIMARY KEY AUTOINCREMENT,
     user_id INTEGER NOT NULL DEFAULT 0,
+    author  TEXT NOT NULL DEFAULT 'me',
     ts      TEXT NOT NULL,
     day     TEXT NOT NULL,
     kind    TEXT NOT NULL DEFAULT 'event',
@@ -115,6 +116,12 @@ class Store:
             )
         except sqlite3.OperationalError:
             pass
+        try:
+            self.conn.execute(
+                "ALTER TABLE entries ADD COLUMN author TEXT NOT NULL DEFAULT 'me'"
+            )
+        except sqlite3.OperationalError:
+            pass
         # 已经不做多用户了：把历史上归属某个账号的记录归零，否则界面上看不见
         try:
             self.conn.execute("UPDATE entries SET user_id = 0 WHERE user_id != 0")
@@ -145,6 +152,7 @@ class Store:
         source: str = "cli",
         ts: datetime | None = None,
         meta: dict[str, Any] | None = None,
+        author: str = "me",
     ) -> int:
         text = (text or "").strip()
         if not text:
@@ -160,11 +168,12 @@ class Store:
             source,
             json.dumps(meta or {}, ensure_ascii=False),
             getattr(self, "current_user_id", 0),
+            author,
         )
         with self._lock:
             cur = self.conn.execute(
-                "INSERT INTO entries(ts, day, kind, text, tags, mood, source, meta, user_id)"
-                " VALUES (?,?,?,?,?,?,?,?,?)",
+                "INSERT INTO entries(ts, day, kind, text, tags, mood, source, meta, user_id, author)"
+                " VALUES (?,?,?,?,?,?,?,?,?,?)",
                 row,
             )
             self.conn.commit()
@@ -297,6 +306,28 @@ class Store:
             if len(seen) >= limit:
                 break
         return seen
+
+    def by_author(self) -> dict[str, int]:
+        """按作者统计条数，给侧栏分组用。"""
+        with self._lock:
+            rows = self.conn.execute(
+                "SELECT author, COUNT(*) c FROM entries WHERE user_id = ? GROUP BY author",
+                (getattr(self, "current_user_id", 0),),
+            ).fetchall()
+        out = {"me": 0, "ai": 0}
+        for r in rows:
+            out[r["author"]] = int(r["c"])
+        return out
+
+    def recent_by(self, author: str, limit: int = 60) -> list[Any]:
+        """只取某个作者写的。"""
+        with self._lock:
+            rows = self.conn.execute(
+                "SELECT * FROM entries WHERE user_id = ? AND author = ?"
+                " ORDER BY ts DESC, id DESC LIMIT ?",
+                (getattr(self, "current_user_id", 0), author, limit),
+            ).fetchall()
+        return [self._to_entry(r) for r in rows]
 
     def insights(self, days: int = 30) -> dict[str, Any]:
         """给界面画图用的统计：近 N 天记录数、情绪均值、时段分布、类型分布、连续天数。"""

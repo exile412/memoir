@@ -75,9 +75,10 @@ function renderGreeting() {
 }
 
 function renderList() {
-  var list = $('list');
+  var list = $('listMe');
+  if (!list) return;
   list.innerHTML = '';
-  $('listCount').textContent = state.entries.length + ' 条';
+  if ($('cntMe')) $('cntMe').textContent = state.entries.length;
   if (!state.entries.length) {
     list.innerHTML = '<div class="empty" style="padding:30px 10px">还没有记录</div>';
     return;
@@ -112,9 +113,62 @@ function loadEntries() {
   return api(url).then(function (res) {
     state.entries = res.entries || [];
     renderList();
+    loadGroups();
   });
 }
 
+function loadGroups() {
+  return Promise.all([
+    api('byauthor'),
+    api('entries?author=me'),
+    api('entries?author=ai')
+  ]).then(function (res) {
+    var c = (res[0] && res[0].counts) || {};
+    if ($('cntMe')) $('cntMe').textContent = c.me || 0;
+    if ($('cntAi')) $('cntAi').textContent = c.ai || 0;
+    var mine = (res[1] && res[1].entries) || [];
+    var hers = (res[2] && res[2].entries) || [];
+    state.entries = mine;
+    state.mine = mine;
+    state.hers = hers;
+    renderGroup('listMe', mine);
+    renderGroup('listAi', hers);
+  });
+}
+
+function showEntryDetail(e) {
+  clearChat();
+  var wrap = document.createElement('div');
+  wrap.className = 'msg ai';
+  var when = (e.ts || '').slice(0, 16).replace('T', ' ');
+  wrap.innerHTML = '<div class="bubble">' + formatText(e.text) +
+    '<div class="meta">' + when + ' · ' + esc(kindLabel(e.kind)) + '</div></div>';
+  document.getElementById('chat').appendChild(wrap);
+}
+
+function renderGroup(id, list) {
+  var el = document.getElementById(id);
+  if (!el) return;
+  if (!list.length) {
+    el.innerHTML = '<div class="group-empty">还没有</div>';
+    return;
+  }
+  el.innerHTML = '';
+  list.forEach(function (e) {
+    var time = (e.ts || '').slice(11, 16);
+    var title = e.title || (e.text || '').slice(0, 18);
+    var div = document.createElement('div');
+    div.className = 'item' + (state.currentId === e.id ? ' active' : '');
+    div.innerHTML = '<b>' + esc(title) + '</b><small>' + time + ' · ' + esc(kindLabel(e.kind)) + '</small>';
+    div.onclick = function () {
+      state.currentId = e.id;
+      showEntryDetail(e);
+      renderGroup('listMe', state.mine || []);
+      renderGroup('listAi', state.hers || []);
+    };
+    el.appendChild(div);
+  });
+}
 function setBusy(on) {
   busy = on;
   $('sendBtn').disabled = on;
@@ -553,6 +607,14 @@ function checkReminder() {
 
 
 function boot() {
+  Array.prototype.forEach.call(document.querySelectorAll('.group-head'), function (b) {
+    b.onclick = function () {
+      var box = b.parentElement.querySelector('.list');
+      var collapsed = b.classList.toggle('collapsed');
+      if (box) box.style.display = collapsed ? 'none' : '';
+      b.querySelector('i').textContent = collapsed ? '▸' : '▾';
+    };
+  });
   if (document.getElementById('insightClose')) document.getElementById('insightClose').onclick = function () {
     document.getElementById('insightLayer').classList.remove('show');
   };

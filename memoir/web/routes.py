@@ -81,6 +81,9 @@ def dispatch(app: Any, method: str, path: str, query: dict[str, list[str]],
 
         return _json(build_bootstrap(app))
 
+    if method == "GET" and route == "byauthor":
+        return _json({"counts": app.store.by_author()})
+
     if method == "GET" and route == "entries":
         day = query.get("day", [""])[0]
         q = query.get("q", [""])[0].strip()
@@ -92,7 +95,8 @@ def dispatch(app: Any, method: str, path: str, query: dict[str, list[str]],
         elif day:
             rows = list(reversed(app.store.entries_for_day(day)))
         else:
-            rows = app.store.recent(limit)
+            author = query.get("author", [""])[0]
+            rows = app.store.recent_by(author, limit) if author in ("me", "ai") else app.store.recent(limit)
         if kind:
             rows = [e for e in rows if e.kind == kind]
         return _json({"entries": [_entry_json(e) for e in rows]})

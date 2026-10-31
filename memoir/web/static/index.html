@@ -37,7 +37,20 @@
     <span>记录</span>
     <em id="listCount">0 条</em>
   </div>
-  <div class="list" id="list"></div>
+  <div class="side-groups">
+    <div class="side-group">
+      <button class="group-head" data-group="me">
+        <i>▾</i>我的日记 <em id="cntMe">0</em>
+      </button>
+      <div class="list" id="listMe"></div>
+    </div>
+    <div class="side-group">
+      <button class="group-head" data-group="ai">
+        <i>▾</i>鱼娘写的 <em id="cntAi">0</em>
+      </button>
+      <div class="list" id="listAi"></div>
+    </div>
+  </div>
 
   <div class="side-foot">
     <button class="foot-btn" data-act="insights"><i>▦</i>数据洞察</button>
