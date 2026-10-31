@@ -30,7 +30,7 @@ function formatText(text) {
   for (var i = 0; i < parts.length; i++) {
     if (i % 2 === 1) {
       var code = parts[i].replace(/^[a-zA-Z0-9+#-]*\n/, '');
-      html += '<pre><code>' + esc(code) + '</code></pre>';
+      html += '<pre><code>' + (window.highlightCode ? highlightCode(code) : esc(code)) + '</code></pre>';
     } else if (parts[i].trim()) {
       html += '<span>' + esc(parts[i]).replace(/\n/g, '<br>') + '</span>';
     }
@@ -463,12 +463,39 @@ function checkAuth() {
   });
 }
 
+// ---------- 晚间提醒 ----------
+function checkReminder() {
+  try {
+    var now = new Date();
+    if (now.getHours() < 20) return;
+    var boot = state.boot || {};
+    if (!boot.today || !boot.todayCount) return;
+    if (sessionStorage.getItem('memoir.remind.dismiss') === boot.today) return;
+    api('review?day=' + encodeURIComponent(boot.today)).then(function (r) {
+      if (r && r.review) return;
+      $('reminder').classList.add('show');
+    });
+  } catch (e) {}
+}
+
 function boot() {
   $('authBtn').onclick = doAuth;
   $('authPwd').addEventListener('keydown', function (e) { if (e.key === 'Enter') doAuth(); });
   $('authPwd2').addEventListener('keydown', function (e) { if (e.key === 'Enter') doAuth(); });
+  $('reminderGo').onclick = function () {
+    $('reminder').classList.remove('show');
+    doReview();
+  };
+  $('reminderClose').onclick = function () {
+    $('reminder').classList.remove('show');
+    if (state.boot && state.boot.today) sessionStorage.setItem('memoir.remind.dismiss', state.boot.today);
+  };
+
   checkAuth().then(function (ok) {
-    if (ok) startApp();
+    if (ok) {
+      startApp();
+      setTimeout(checkReminder, 1500);
+    }
   });
 }
 

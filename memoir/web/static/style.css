@@ -318,3 +318,27 @@ select.pill{cursor:pointer;padding-right:8px}
   .topbar h1{font-size:14.5px}
   .chat{padding-top:14px}
 }
+
+/* ---------- 代码高亮 ---------- */
+pre code .c-kw{color:#c792ea}
+pre code .c-str{color:#c3e88d}
+pre code .c-cm{color:#6b7a90;font-style:italic}
+pre code .c-num{color:#f78c6c}
+
+/* ---------- 晚间提醒条 ---------- */
+.reminder{
+  display:none;align-items:center;gap:12px;
+  margin:10px 24px 0;padding:10px 16px;border-radius:10px;
+  background:rgba(77,107,254,.12);border:1px solid rgba(77,107,254,.35);
+  font-size:13px;color:#b9c6ff;
+}
+.reminder.show{display:flex}
+.reminder-btn{
+  height:26px;padding:0 12px;border-radius:7px;background:var(--accent);color:#fff;
+  font-size:12px;margin-left:auto;
+}
+.reminder-close{height:26px;padding:0 10px;border-radius:7px;color:var(--text-3);font-size:12px}
+
+@media (max-width:860px){
+  .reminder{margin:8px 12px 0;padding:8px 12px;font-size:12px;flex-wrap:wrap;gap:8px}
+}

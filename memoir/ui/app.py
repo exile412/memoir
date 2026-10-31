@@ -674,12 +674,19 @@ class MemoirApp(tk.Tk):
         import threading
         import webbrowser
 
-        if getattr(self, "_web_started", False):
-            webbrowser.open("http://127.0.0.1:8765")
-            self._settings_hint.configure(text="网页版已在运行，已帮你打开浏览器", fg=T.CYAN)
-            return
+        from tkinter import messagebox
 
+        from ..web.app import _lan_ip
         from ..web.app import run as run_web
+
+        ip = _lan_ip()
+        local = "http://127.0.0.1:8765"
+        lan = f"http://{ip}:8765"
+
+        if getattr(self, "_web_started", False):
+            webbrowser.open(local)
+            messagebox.showinfo("网页版已在运行", f"本机：{local}\n手机：{lan}\n\n手机需与电脑同一 WiFi。")
+            return
 
         def boot() -> None:
             try:
@@ -689,8 +696,14 @@ class MemoirApp(tk.Tk):
 
         threading.Thread(target=boot, daemon=True).start()
         self._web_started = True
-        self._settings_hint.configure(
-            text="网页版已启动：电脑浏览器自动打开，手机用同 WiFi 访问终端提示的地址", fg=T.CYAN
+        self._settings_hint.configure(text=f"网页版已启动 → {lan}", fg=T.CYAN)
+        # 等服务真正起来再弹，避免提示了却打不开
+        self.after(
+            1200,
+            lambda: messagebox.showinfo(
+                "网页版已启动",
+                f"本机：{local}\n手机：{lan}\n\n手机需与电脑连同一个 WiFi。",
+            ),
         )
 
     def _test_model(self) -> None:
