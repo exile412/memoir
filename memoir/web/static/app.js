@@ -497,6 +497,8 @@ function openGalaxy() {
   if (document.getElementById('galaxyClose')) {
     document.getElementById('galaxyClose').onclick = function () {
       layer.classList.remove('show');
+      // 清空 iframe，让 WebView2 回收那块渲染进程
+      setTimeout(function () { frame.src = 'about:blank'; }, 120);
     };
   }
 }

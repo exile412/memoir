@@ -206,7 +206,23 @@
     }
 
     if (state.spin && !state.dragging) state.angle += 0.0016;
+    if (document.hidden) {
+      pauseChain();
+      return;
+    }
     requestAnimationFrame(draw);
+  }
+
+  var paused = false;
+  function pauseChain() {
+    if (paused) return;
+    paused = true;
+    document.addEventListener('visibilitychange', function () {
+      if (!document.hidden && paused) {
+        paused = false;
+        requestAnimationFrame(draw);
+      }
+    }, { once: true });
   }
 
   function written(q, txt) {
