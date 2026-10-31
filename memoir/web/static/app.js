@@ -396,6 +396,24 @@ function startApp() {
   $('reloadWallpapers').onclick = loadWallpapers;
   $('clearWallpaper').onclick = function () { applyWallpaper(null); };
   $('exportBtn').onclick = function () { window.open('/api/export', '_blank'); };
+
+  if ($('notesOpen')) $('notesOpen').onclick = function () {
+    api('notes/open', { method: 'POST', body: {} }).then(function (r) {
+      $('notesNote').textContent = r.ok ? ('已打开：' + r.dir) : ('打开失败：' + r.error);
+    });
+  };
+  if ($('notesExport')) $('notesExport').onclick = function () {
+    api('notes/export', { method: 'POST', body: {} }).then(function (r) {
+      $('notesNote').textContent = '写出 ' + r.written + ' 个文件到 ' + r.dir;
+    });
+  };
+  if ($('notesSync')) $('notesSync').onclick = function () {
+    $('notesNote').textContent = '同步中…';
+    api('notes/sync', { method: 'POST', body: {} }).then(function (r) {
+      $('notesNote').textContent = '新增 ' + r.added + ' / 更新 ' + r.updated + ' / 删除 ' + r.removed;
+      loadEntries();
+    });
+  };
   $('refreshBtn').onclick = function () { loadEntries(); loadSettings(); };
   $('menuBtn').onclick = function () { toggleSidebar(true); };
   } catch (e) { console.error('startApp bind error', e); }

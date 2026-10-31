@@ -216,6 +216,38 @@ def dispatch(app: Any, method: str, path: str, query: dict[str, list[str]],
         # 只能在未登录状态下清空（会要求当前密码），这里留作 CLI 辅助
         return _json({"error": "请在服务器上删除 ~/.memoir/auth.json 来重置"}, 400)
 
+    if method == "POST" and route == "notes/sync":
+        from ..notefiles import sync_from_dir
+
+        d = app.cfg.home / "notes"
+        stats = sync_from_dir(app.store, d)
+        return _json({"ok": True, "dir": str(d), **stats})
+
+    if method == "POST" and route == "notes/export":
+        from ..notefiles import export_all
+
+        d = app.cfg.home / "notes"
+        written = export_all(app.store, d)
+        return _json({"ok": True, "dir": str(d), "written": written})
+
+    if method == "POST" and route == "notes/open":
+        import os
+        import subprocess
+        import sys as _sys
+
+        d = app.cfg.home / "notes"
+        d.mkdir(parents=True, exist_ok=True)
+        try:
+            if _sys.platform == "win32":
+                os.startfile(str(d))  # type: ignore[attr-defined]
+            elif _sys.platform == "darwin":
+                subprocess.Popen(["open", str(d)])
+            else:
+                subprocess.Popen(["xdg-open", str(d)])
+        except Exception as exc:  # noqa: BLE001
+            return _json({"ok": False, "dir": str(d), "error": str(exc)})
+        return _json({"ok": True, "dir": str(d)})
+
     if method == "POST" and route == "model/test":
         from ..llm import LLMClient
 

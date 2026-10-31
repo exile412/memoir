@@ -251,6 +251,39 @@ def cmd_daemon(app: App, args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_notes(app: App, args: argparse.Namespace) -> int:
+    """记事本模式：导出为 Markdown / 从 Markdown 同步回库。"""
+    from .notefiles import export_all, sync_from_dir
+
+    notes_dir = Path(args.dir).expanduser() if args.dir else app.cfg.home / "notes"
+    if args.sync or args.watch_never:
+        stats = sync_from_dir(app.store, notes_dir)
+        app.echo(
+            f"已同步：新增 {stats['added']} / 更新 {stats['updated']} / 删除 {stats['removed']}"
+            f"（扫描 {stats['files']} 个文件）"
+        )
+        return 0
+
+    written = export_all(app.store, notes_dir)
+    app.echo(f"笔记目录：{notes_dir}")
+    app.echo(f"本次写出 {written} 个文件（已存在的不覆盖）")
+    if not args.no_open:
+        try:
+            import os
+            import subprocess
+            import sys as _sys
+
+            if _sys.platform == "win32":
+                os.startfile(str(notes_dir))  # type: ignore[attr-defined]
+            elif _sys.platform == "darwin":
+                subprocess.Popen(["open", str(notes_dir)])
+            else:
+                subprocess.Popen(["xdg-open", str(notes_dir)])
+        except Exception:  # noqa: BLE001
+            pass
+    return 0
+
+
 def cmd_web(app: App, args: argparse.Namespace) -> int:
     """起本地 Web 服务：电脑浏览器和手机都能连。"""
     from .web.app import run
@@ -350,6 +383,12 @@ def build_parser() -> argparse.ArgumentParser:
 
     gui = sub.add_parser("gui", help="open the desktop window")
     gui.set_defaults(func=cmd_gui)
+
+    notes = sub.add_parser("notes", help="export memories as Markdown / sync edits back")
+    notes.add_argument("--dir", help="notes folder (default ~/.memoir/notes)")
+    notes.add_argument("--sync", action="store_true", help="sync file edits back into the database")
+    notes.add_argument("--no-open", action="store_true", help="do not open the folder")
+    notes.set_defaults(func=cmd_notes, watch_never=False)
 
     web = sub.add_parser("web", help="start the local web server (phone friendly)")
     web.add_argument("--host", default="0.0.0.0")

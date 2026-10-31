@@ -232,6 +232,30 @@ class Store:
             ).fetchall()
         return [self._to_entry(r) for r in rows]
 
+    def update_entry(self, entry_id: int, text: str | None = None,
+                     kind: str | None = None, tags: str | None = None) -> bool:
+        """按需更新字段。FTS 由触发器同步。"""
+        sets: list[str] = []
+        params: list[Any] = []
+        if text is not None:
+            sets.append("text = ?")
+            params.append(text)
+        if kind is not None:
+            sets.append("kind = ?")
+            params.append(kind)
+        if tags is not None:
+            sets.append("tags = ?")
+            params.append(tags)
+        if not sets:
+            return False
+        params.append(entry_id)
+        with self._lock:
+            cur = self.conn.execute(
+                f"UPDATE entries SET {', '.join(sets)} WHERE id = ?", params
+            )
+            self.conn.commit()
+            return cur.rowcount > 0
+
     def delete_entry(self, entry_id: int) -> bool:
         with self._lock:
             cur = self.conn.execute("DELETE FROM entries WHERE id = ?", (entry_id,))
