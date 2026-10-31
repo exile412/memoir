@@ -345,6 +345,7 @@ function startApp() {
     loadEntries();
   });
 
+  try {
   $('sendBtn').onclick = send;
   $('input').addEventListener('input', autoGrow);
   $('input').addEventListener('keydown', function (e) {
@@ -397,6 +398,7 @@ function startApp() {
   $('exportBtn').onclick = function () { window.open('/api/export', '_blank'); };
   $('refreshBtn').onclick = function () { loadEntries(); loadSettings(); };
   $('menuBtn').onclick = function () { toggleSidebar(true); };
+  } catch (e) { console.error('startApp bind error', e); }
 }
 
 // ---------- 登录 ----------
@@ -447,11 +449,9 @@ function doAuth() {
 
 function checkAuth() {
   return api('auth/status').then(function (s) {
-    if (!s.enabled) {
-      authMode = 'setup';
-      showAuth('第一次使用，先设一个访问密码', '只在这台电脑上保存，手机登录要用同一个密码');
-      return false;
-    }
+    // 没有设过密码就直接放行——本地工具，不逼用户先设密码。
+    // 想加密码的，在设置抽屉里点「设置访问密码」。
+    if (!s.enabled) return true;
     return fetch('/api/bootstrap').then(function (r) {
       if (r.status === 401) {
         authMode = 'login';
@@ -479,24 +479,29 @@ function checkReminder() {
 }
 
 function boot() {
-  $('authBtn').onclick = doAuth;
-  $('authPwd').addEventListener('keydown', function (e) { if (e.key === 'Enter') doAuth(); });
-  $('authPwd2').addEventListener('keydown', function (e) { if (e.key === 'Enter') doAuth(); });
-  $('reminderGo').onclick = function () {
-    $('reminder').classList.remove('show');
-    doReview();
-  };
-  $('reminderClose').onclick = function () {
-    $('reminder').classList.remove('show');
-    if (state.boot && state.boot.today) sessionStorage.setItem('memoir.remind.dismiss', state.boot.today);
-  };
+  // 所有 DOM 绑定都包在 try 里：少一个元素也不能拖垮登录流程
+  try {
+    $('authBtn').onclick = doAuth;
+    $('authPwd').addEventListener('keydown', function (e) { if (e.key === 'Enter') doAuth(); });
+    $('authPwd2').addEventListener('keydown', function (e) { if (e.key === 'Enter') doAuth(); });
+    if ($('reminderGo')) $('reminderGo').onclick = function () {
+      $('reminder').classList.remove('show');
+      doReview();
+    };
+    if ($('reminderClose')) $('reminderClose').onclick = function () {
+      $('reminder').classList.remove('show');
+      if (state.boot && state.boot.today) sessionStorage.setItem('memoir.remind.dismiss', state.boot.today);
+    };
+  } catch (e) { console.error('boot bind error', e); }
 
   checkAuth().then(function (ok) {
     if (ok) {
       startApp();
       setTimeout(checkReminder, 1500);
     }
+  }).catch(function (e) {
+    console.error('auth error', e);
+    startApp();
   });
 }
-
 document.addEventListener('DOMContentLoaded', boot);

@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#131313">
 <title>memoir · 记忆</title>
-<link rel="stylesheet" href="/static/style.css">
+<link rel="stylesheet" href="/static/style.css?v=062">
 </head>
 <body>
 <div class="wallpaper-layer" id="wpLayer"></div>
@@ -54,6 +54,12 @@
       <input class="search" id="search" placeholder="搜索记忆…" autocomplete="off">
     </div>
   </header>
+
+  <div class="reminder" id="reminder">
+    <span>今天还没复盘</span>
+    <button class="reminder-btn" id="reminderGo">现在生成</button>
+    <button class="reminder-close" id="reminderClose">稍后</button>
+  </div>
 
   <section class="chat" id="chat"></section>
 
@@ -126,7 +132,7 @@
   </div>
 </div>
 
-<script src="/static/syntax.js"></script>
-<script src="/static/app.js"></script>
+<script src="/static/syntax.js?v=061"></script>
+<script src="/static/app.js?v=061"></script>
 </body>
 </html>
