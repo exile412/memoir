@@ -520,106 +520,12 @@ function checkReminder() {
 }
 
 
-// ---------- 账号 ----------
-function accShow(data) {
-  var guest = document.getElementById('accGuest');
-  var userBox = document.getElementById('accUser');
-  if (!data || !data.loggedIn) {
-    if (guest) guest.style.display = 'block';
-    if (userBox) userBox.style.display = 'none';
-    if (document.getElementById('accNote')) {
-      document.getElementById('accNote').textContent = data && data.hasUsers
-        ? '还没有登录。也可以不登录直接用。'
-        : '邮箱只当账号用，不会发验证邮件。不想注册也能直接用。';
-    }
-    return;
-  }
-  if (guest) guest.style.display = 'none';
-  if (userBox) userBox.style.display = 'block';
-  var u = data.user;
-  if (document.getElementById('accName')) document.getElementById('accName').textContent = u.nickname;
-  if (document.getElementById('accMail')) document.getElementById('accMail').textContent = u.email;
-  if (document.getElementById('accAvatar')) {
-    document.getElementById('accAvatar').textContent = (u.nickname || '◈').slice(0, 1);
-  }
-}
-
-function loadAccount() {
-  api('user/me').then(accShow);
-}
-
-function doAuthUser(register) {
-  var email = document.getElementById('accEmail').value.trim();
-  var pwd = document.getElementById('accPwd').value;
-  var note = document.getElementById('accNote');
-  note.textContent = '';
-  if (!email || !pwd) { note.textContent = '邮箱和密码都要填'; return; }
-  var path = register ? 'user/register' : 'user/login';
-  api(path, { method: 'POST', body: { email: email, password: pwd } }).then(function (r) {
-    if (r.error) { note.textContent = r.error; return; }
-    document.getElementById('accPwd').value = '';
-    loadAccount();
-  });
-}
-
-function logoutUser() {
-  api('user/logout', { method: 'POST', body: {} }).then(function () { loadAccount(); });
-}
-
-function openProfile() {
-  api('user/me').then(function (d) {
-    if (!d.loggedIn) return;
-    var u = d.user, s = d.stats || {};
-    document.getElementById('pAvatar').textContent = (u.nickname || '◈').slice(0, 1);
-    document.getElementById('pName').textContent = u.nickname;
-    document.getElementById('pBio').textContent = u.bio || '还没有写简介';
-    document.getElementById('pEditName').value = u.nickname || '';
-    document.getElementById('pEditBio').value = u.bio || '';
-    var stats = [
-      ['记录', s.entries || 0],
-      ['天数', s.days || 0],
-      ['复盘', s.reviews || 0],
-      ['人格', s.persona_facts || 0]
-    ];
-    document.getElementById('pStats').innerHTML = stats.map(function (p) {
-      return '<div><b>' + p[1] + '</b><span>' + p[0] + '</span></div>';
-    }).join('');
-    document.getElementById('profileLayer').classList.add('show');
-  });
-}
-
-function saveProfile() {
-  api('user/profile', {
-    method: 'POST',
-    body: {
-      nickname: document.getElementById('pEditName').value,
-      bio: document.getElementById('pEditBio').value
-    }
-  }).then(function (r) {
-    if (r.ok) { loadAccount(); openProfile(); }
-    else if (document.getElementById('pBio')) document.getElementById('pBio').textContent = r.error;
-  });
-}
-
-function bindAccount() {
-  if (document.getElementById('accLogin')) document.getElementById('accLogin').onclick = function () { doAuthUser(false); };
-  if (document.getElementById('accRegister')) document.getElementById('accRegister').onclick = function () { doAuthUser(true); };
-  if (document.getElementById('accLogout')) document.getElementById('accLogout').onclick = logoutUser;
-  if (document.getElementById('accProfile')) document.getElementById('accProfile').onclick = openProfile;
-  if (document.getElementById('profileClose')) document.getElementById('profileClose').onclick = function () {
-    document.getElementById('profileLayer').classList.remove('show');
-  };
-  if (document.getElementById('pSave')) document.getElementById('pSave').onclick = saveProfile;
-  loadAccount();
-}
-
 function boot() {
   // 所有 DOM 绑定都包在 try 里：少一个元素也不能拖垮登录流程
   try {
     $('authBtn').onclick = doAuth;
     $('authPwd').addEventListener('keydown', function (e) { if (e.key === 'Enter') doAuth(); });
     $('authPwd2').addEventListener('keydown', function (e) { if (e.key === 'Enter') doAuth(); });
-    bindAccount();
     if ($('reminderGo')) $('reminderGo').onclick = function () {
       $('reminder').classList.remove('show');
       doReview();
