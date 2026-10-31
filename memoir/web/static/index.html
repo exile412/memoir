@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#131313">
+<title>memoir · 记忆</title>
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<div class="scrim" id="scrim"></div>
+
+<aside class="sidebar" id="sidebar">
+  <div class="brand">
+    <div class="logo">◈</div>
+    <div class="brand-text"><b>memoir</b><span>记忆</span></div>
+  </div>
+
+  <button class="new-btn" id="newBtn">
+    <span class="plus">＋</span> 新的记录
+  </button>
+
+  <div class="list-head">
+    <span>记录</span>
+    <em id="listCount">0 条</em>
+  </div>
+  <div class="list" id="list"></div>
+
+  <div class="side-foot">
+    <button class="foot-btn" data-act="review"><i>▤</i>生成复盘</button>
+    <button class="foot-btn" data-act="persona"><i>◍</i>人格档案</button>
+    <button class="foot-btn" data-act="settings"><i>⚙</i>设置</button>
+  </div>
+</aside>
+
+<main class="main">
+  <header class="topbar">
+    <button class="icon-btn only-mobile" id="menuBtn" aria-label="菜单">☰</button>
+    <h1 id="pageTitle">记忆库</h1>
+    <div class="top-actions">
+      <input class="search" id="search" placeholder="搜索记忆…" autocomplete="off">
+    </div>
+  </header>
+
+  <section class="chat" id="chat"></section>
+
+  <footer class="composer" id="composer">
+    <div class="composer-tools">
+      <select class="pill" id="kind" title="类型">
+        <option value="event">事件</option>
+        <option value="thought">想法</option>
+        <option value="feeling">情绪</option>
+        <option value="note">备注</option>
+      </select>
+      <select class="pill" id="mode" title="保存方式">
+        <option value="raw">原样保存</option>
+        <option value="polished">文笔美化</option>
+        <option value="organized">AI 整理</option>
+      </select>
+      <button class="pill toggle" id="titleToggle" data-on="1">自动标题</button>
+      <span class="grow"></span>
+      <button class="pill" id="groupBtn" title="选择分组">分组</button>
+    </div>
+    <textarea id="input" rows="1" enterkeyhint="send" placeholder="今天想要记录什么？"></textarea>
+    <div class="composer-actions">
+      <span class="hint" id="hint"></span>
+    </div>
+    <button class="send" id="sendBtn">发送</button>
+  </footer>
+</main>
+
+<div class="drawer" id="drawer" aria-hidden="true">
+  <div class="drawer-head">
+    <b>设置</b>
+    <button class="icon-btn" id="drawerClose">✕</button>
+  </div>
+  <div class="drawer-body">
+    <section class="sec">
+      <h3>模型</h3>
+      <label>接口地址<input id="setBaseUrl" placeholder="http://127.0.0.1:11434/v1"></label>
+      <label>模型名<input id="setModel" placeholder="qwen3-8b-zh-fast:latest"></label>
+      <label>API Key<input id="setKey" placeholder="本地模型留空"></label>
+      <div class="row2">
+        <label>温度<input id="setTemp" type="number" step="0.1" min="0" max="2"></label>
+        <label>超时(秒)<input id="setTimeout" type="number" min="10"></label>
+      </div>
+      <div class="row-actions">
+        <button class="btn primary" id="saveSettings">保存</button>
+        <button class="btn" id="testModel">测试连接</button>
+      </div>
+      <p class="note" id="modelNote"></p>
+    </section>
+
+    <section class="sec">
+      <h3>壁纸</h3>
+      <p class="note">自动读取 Wallpaper Engine 创意工坊目录，也可以手动指定一个图片文件夹。</p>
+      <label>壁纸目录<input id="setWallpaperDir" placeholder="留空则自动探测"></label>
+      <div class="row-actions">
+        <button class="btn" id="reloadWallpapers">刷新列表</button>
+        <button class="btn" id="clearWallpaper">清除背景</button>
+      </div>
+      <div class="wall-grid" id="wallGrid"></div>
+    </section>
+
+    <section class="sec">
+      <h3>数据</h3>
+      <div class="row-actions">
+        <button class="btn" id="exportBtn">导出全部</button>
+        <button class="btn" id="refreshBtn">刷新</button>
+      </div>
+      <p class="note" id="dataNote"></p>
+    </section>
+  </div>
+</div>
+
+<script src="/static/app.js"></script>
+</body>
+</html>

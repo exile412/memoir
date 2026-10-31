@@ -251,6 +251,15 @@ def cmd_daemon(app: App, args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_web(app: App, args: argparse.Namespace) -> int:
+    """起本地 Web 服务：电脑浏览器和手机都能连。"""
+    from .web.app import run
+
+    app.close()
+    run(cfg=app.cfg, host=args.host, port=args.port, open_browser=not args.no_browser)
+    return 0
+
+
 def cmd_gui(app: App, args: argparse.Namespace) -> int:
     """打开桌面窗口。业务逻辑复用已有模块，这里只负责把界面拉起来。"""
     from .desktop import MemoirApp
@@ -341,6 +350,12 @@ def build_parser() -> argparse.ArgumentParser:
 
     gui = sub.add_parser("gui", help="open the desktop window")
     gui.set_defaults(func=cmd_gui)
+
+    web = sub.add_parser("web", help="start the local web server (phone friendly)")
+    web.add_argument("--host", default="0.0.0.0")
+    web.add_argument("--port", type=int, default=8765)
+    web.add_argument("--no-browser", action="store_true")
+    web.set_defaults(func=cmd_web)
 
     o = sub.add_parser("once", help="run one nightly pass now")
     o.add_argument("--date")

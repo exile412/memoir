@@ -238,6 +238,24 @@ class Store:
             self.conn.commit()
             return cur.rowcount > 0
 
+    def list_groups(self, limit: int = 40) -> list[str]:
+        """把条目 tags 拆成去重分组，供前端选择。"""
+        import re as _re
+
+        with self._lock:
+            rows = self.conn.execute(
+                "SELECT tags FROM entries WHERE tags != '' ORDER BY id DESC LIMIT 2000"
+            ).fetchall()
+        seen: list[str] = []
+        for r in rows:
+            for g in _re.split(r"[,，\s]+", r["tags"] or ""):
+                g = g.strip()
+                if g and g not in seen:
+                    seen.append(g)
+            if len(seen) >= limit:
+                break
+        return seen
+
     def count_entries(self) -> int:
         with self._lock:
             return int(self.conn.execute("SELECT COUNT(*) c FROM entries").fetchone()["c"])

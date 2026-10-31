@@ -65,7 +65,7 @@ python -m memoir --help
 ### 验证
 
 ```bash
-memoir --version        # memoir 0.4.1
+memoir --version        # memoir 0.5.0
 memoir config           # 打印当前配置和数据目录
 ```
 
@@ -175,6 +175,21 @@ memoir gui
 | 插件 | 已加载插件列表与状态 |
 
 右侧 280px 参数栏随页面更新：今日概览、类型筛选、语言切换。
+
+### 网页版（手机也能用）
+
+![网页版](design/web-desktop.png)
+
+```bash
+memoir web
+```
+
+终端会打印两个地址：本机 `http://127.0.0.1:8765`，以及手机可用的 `http://<局域网IP>:8765`。
+
+浏览器端和桌面端共用同一个 `memoir.db`——桌面记的，手机立刻能看到。
+
+网页版多出来的能力：**壁纸引擎联动**、**文笔美化 / AI 整理**两种保存模式、手机响应式布局。
+完整说明见 [07-web](docs/07-web.md)。
 
 **自己打包：**
 
@@ -426,6 +441,7 @@ FTS 用 trigram，1~2 个字会退回 LIKE 匹配；词越长越准。
 | [04-languages](docs/04-languages.md) | 语言包结构、回退规则、怎么加新语言 |
 | [05-ui-design](docs/05-ui-design.md) | 色板、字体、栅格、组件划分、绘图提示词 |
 | [06-engineering](docs/06-engineering.md) | **全生命周期**：需求 → UI → 前端 → 后端 → 数据库 → 模型 → 测试 → 部署 → 迭代 |
+| [07-web](docs/07-web.md) | Web 端：架构、接口表、壁纸引擎、美化开关、手机访问与排查 |
 
 ## 开发
 
