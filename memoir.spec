@@ -5,7 +5,7 @@ a = Analysis(
     ['launcher.py'],
     pathex=['.'],
     binaries=[],
-    datas=[('memoir/locales', 'memoir/locales')],
+    datas=[('memoir/locales', 'memoir/locales'), ('memoir/web/static', 'memoir/web/static')],
     hiddenimports=[],
     hookspath=[],
     hooksconfig={},

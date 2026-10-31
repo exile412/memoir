@@ -423,6 +423,8 @@ class MemoirApp(tk.Tk):
                    parent_bg=T.BG_CARD).place(x=20, y=352)
         FlatButton(card, "测试连接", self._test_model, kind="ghost", width=104, height=34,
                    parent_bg=T.BG_CARD).place(x=146, y=352)
+        FlatButton(card, "启动网页版", self._start_web, kind="ghost", width=120, height=34,
+                   parent_bg=T.BG_CARD).place(x=258, y=352)
 
         kinds_card = Card(parent, height=200, parent_bg=T.BG_BASE)
         kinds_card.pack(fill="x", pady=(12, 0))
@@ -666,6 +668,30 @@ class MemoirApp(tk.Tk):
             self._settings_hint.configure(text=f"已保存到 {self.cfg.config_path}", fg=T.CYAN)
         except ValueError as exc:
             self._settings_hint.configure(text=f"配置不合法：{exc}", fg=T.ERROR)
+
+    def _start_web(self) -> None:
+        """在后台线程起 Web 服务，手机连同一 WiFi 就能用。"""
+        import threading
+        import webbrowser
+
+        if getattr(self, "_web_started", False):
+            webbrowser.open("http://127.0.0.1:8765")
+            self._settings_hint.configure(text="网页版已在运行，已帮你打开浏览器", fg=T.CYAN)
+            return
+
+        from ..web.app import run as run_web
+
+        def boot() -> None:
+            try:
+                run_web(cfg=self.cfg, port=8765, open_browser=True)
+            except OSError as exc:
+                self._settings_hint.configure(text=f"启动失败：{exc}", fg=T.ERROR)
+
+        threading.Thread(target=boot, daemon=True).start()
+        self._web_started = True
+        self._settings_hint.configure(
+            text="网页版已启动：电脑浏览器自动打开，手机用同 WiFi 访问终端提示的地址", fg=T.CYAN
+        )
 
     def _test_model(self) -> None:
         from ..llm import LLMClient
