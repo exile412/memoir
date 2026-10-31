@@ -126,7 +126,7 @@ function showEntryDetail(e) {
   clearChat();
   var wrap = document.createElement('div');
   wrap.className = 'msg ai';
-  var when = (e.ts || '').slice(0, 16).replace('T', ' ');
+  var when = fmtWhen(e.ts, true);
   wrap.innerHTML = '<div class="bubble">' + formatText(e.text) +
     '<div class="meta">' + when + ' · ' + esc(kindLabel(e.kind)) + '</div></div>';
   document.getElementById('chat').appendChild(wrap);
@@ -691,16 +691,27 @@ function buildFolderNode(f, depth) {
   return wrap;
 }
 
+function fmtWhen(ts, full) {
+  if (!ts) return '';
+  var d = String(ts).slice(0, 10);
+  var t = String(ts).slice(11, 16);
+  if (full) return d + ' ' + t;
+  var thisYear = String(new Date().getFullYear());
+  return (d.slice(0, 4) === thisYear ? d.slice(5) : d) + ' ' + t;
+}
+
 function buildEntryLeaf(e) {
   var row = document.createElement('div');
   row.className = 'trow tleaf' + (treeState.sel && treeState.sel.type === 'entry' && treeState.sel.id === e.id ? ' sel' : '');
   row.dataset.id = e.id;
   row.dataset.type = 'entry';
   row.draggable = true;
-  var t = (e.ts || '').slice(11, 16);
-  var title = e.title || (e.text || '').slice(0, 16);
+  var when = fmtWhen(e.ts, false);
+  var title = e.title || (e.text || '').slice(0, 12);
+  row.title = fmtWhen(e.ts, true);
   row.innerHTML = '<span class="tcaret"></span>' +
-    '<span class="tname">' + t + ' ' + esc(title) + '</span>';
+    '<span class="tname"><b style="font-weight:400;color:var(--text-3)">' + when + '</b> ' +
+    esc(title) + '</span>';
   row.onclick = function () {
     treeState.sel = { type: 'entry', id: e.id };
     renderTree();
