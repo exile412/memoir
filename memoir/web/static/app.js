@@ -395,6 +395,11 @@ function startApp() {
   $('testModel').onclick = testModel;
   $('reloadWallpapers').onclick = loadWallpapers;
   $('clearWallpaper').onclick = function () { applyWallpaper(null); };
+  if ($('launchWE')) $('launchWE').onclick = function () {
+    api('wallpaper/launch', { method: 'POST', body: {} }).then(function (r) {
+      $('dataNote').textContent = r.ok ? '已请求启动 Wallpaper Engine' : ('启动失败：' + r.error);
+    });
+  };
   $('exportBtn').onclick = function () { window.open('/api/export', '_blank'); };
 
   if ($('notesOpen')) $('notesOpen').onclick = function () {

@@ -216,6 +216,18 @@ def dispatch(app: Any, method: str, path: str, query: dict[str, list[str]],
         # 只能在未登录状态下清空（会要求当前密码），这里留作 CLI 辅助
         return _json({"error": "请在服务器上删除 ~/.memoir/auth.json 来重置"}, 400)
 
+    if method == "POST" and route == "wallpaper/launch":
+        import os
+        import sys as _sys
+
+        try:
+            if _sys.platform == "win32":
+                os.startfile("steam://rungameid/431960")  # type: ignore[attr-defined]
+                return _json({"ok": True, "hint": "已请求启动 Wallpaper Engine"})
+            return _json({"ok": False, "error": "仅支持 Windows"})
+        except Exception as exc:  # noqa: BLE001
+            return _json({"ok": False, "error": str(exc)})
+
     if method == "POST" and route == "notes/sync":
         from ..notefiles import sync_from_dir
 
