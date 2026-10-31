@@ -173,6 +173,9 @@ class Store:
         if not text:
             raise ValueError("empty entry")
         when = ts or _now()
+        folder_id = getattr(self, "current_folder_id", None)
+        if folder_id is None:
+            folder_id = self.default_folder_for(author)
         row = (
             when.isoformat(timespec="seconds"),
             when.strftime("%Y-%m-%d"),
@@ -184,11 +187,12 @@ class Store:
             json.dumps(meta or {}, ensure_ascii=False),
             getattr(self, "current_user_id", 0),
             author,
+            folder_id,
         )
         with self._lock:
             cur = self.conn.execute(
-                "INSERT INTO entries(ts, day, kind, text, tags, mood, source, meta, user_id, author)"
-                " VALUES (?,?,?,?,?,?,?,?,?,?)",
+                "INSERT INTO entries(ts, day, kind, text, tags, mood, source, meta, user_id, author, folder_id)"
+                " VALUES (?,?,?,?,?,?,?,?,?,?,?)",
                 row,
             )
             self.conn.commit()
@@ -473,13 +477,22 @@ class Store:
         return [self._to_entry(r) for r in rows]
 
     def ensure_default_folders(self) -> None:
-        """首次启动给几个分类，省得面对空树。"""
+        """首次启动只给两个：我写的、它写的。"""
         with self._lock:
             n = int(self.conn.execute("SELECT COUNT(*) c FROM folders").fetchone()["c"])
         if n:
             return
-        for name in ("日常记录", "心里话", "性格笔记", "模型配置"):
-            self.folder_add(name)
+        self.folder_add("我的日志")
+        self.folder_add("鱼娘的日志")
+
+    def default_folder_for(self, author: str) -> int | None:
+        """按作者找归属文件夹，新记录自动落进去。"""
+        name = "我的日志" if author == "me" else "鱼娘的日志"
+        with self._lock:
+            row = self.conn.execute(
+                "SELECT id FROM folders WHERE name = ? AND parent_id IS NULL", (name,)
+            ).fetchone()
+        return int(row["id"]) if row else None
 
     def insights(self, days: int = 30) -> dict[str, Any]:
         """给界面画图用的统计：近 N 天记录数、情绪均值、时段分布、类型分布、连续天数。"""
