@@ -29,6 +29,7 @@ from ..persona import distill, render_profile
 from ..review import generate_review, render_review
 from ..storage import Store
 
+from ..users import USER_COOKIE, UserStore
 from .auth import COOKIE_NAME, TOKEN_DAYS, Auth
 
 STATIC_DIR = Path(__file__).parent / "static"
@@ -73,6 +74,22 @@ class App:
         self.i18n = I18N(cfg.lang)
         self.store = Store(cfg.db_path)
         self.auth = Auth(cfg.home)
+        secret = cfg.extra.get("user_secret") or ""
+        if not secret:
+            import secrets as _secrets
+
+            secret = _secrets.token_hex(32)
+            cfg.extra["user_secret"] = secret
+            try:
+                cfg.save()
+            except OSError:
+                pass
+        self.users = UserStore(self.store, secret)
+        self._local = threading.local()
+
+    def _current_user(self) -> int | None:
+        """当前请求的登录用户（由 Handler 每请求写入，线程隔离）。"""
+        return getattr(self._local, "user_id", None)
 
     def close(self) -> None:
         self.store.close()
@@ -216,12 +233,54 @@ def run(cfg: Config | None = None, host: str = "0.0.0.0", port: int = 8765,
                     return v
             return ""
 
+        def _user_id(self) -> int | None:
+            token = self._cookie(USER_COOKIE)
+            return app.users.check_token(token) if token else None
+
+        def _user_login(self, body: bytes, register: bool) -> None:
+            try:
+                data = json.loads(body.decode("utf-8") or "{}")
+            except Exception:  # noqa: BLE001
+                self._json(400, {"error": "请求体不合法"})
+                return
+            email = str(data.get("email") or "").strip()
+            password = str(data.get("password") or "")
+            try:
+                user = (
+                    app.users.register(email, password, str(data.get("nickname") or ""))
+                    if register
+                    else app.users.login(email, password)
+                )
+            except ValueError as exc:
+                self._json(400, {"error": str(exc)})
+                return
+            token = app.users.make_token(int(user["id"]))
+            payload = json.dumps({"ok": True, "user": user}, ensure_ascii=False).encode("utf-8")
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json; charset=utf-8")
+            self.send_header("Content-Length", str(len(payload)))
+            self.send_header(
+                "Set-Cookie",
+                f"{USER_COOKIE}={token}; Path=/; Max-Age={90 * 86400}; SameSite=Lax; HttpOnly",
+            )
+            self.end_headers()
+            self.wfile.write(payload)
+
+        def _user_logout(self) -> None:
+            payload = json.dumps({"ok": True}).encode("utf-8")
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json; charset=utf-8")
+            self.send_header("Content-Length", str(len(payload)))
+            self.send_header("Set-Cookie", f"{USER_COOKIE}=; Path=/; Max-Age=0; SameSite=Lax")
+            self.end_headers()
+            self.wfile.write(payload)
+
         def _authorized(self, path: str) -> bool:
             if not auth.enabled:
                 return True
             if path in ("/", "/index.html") or path.startswith("/static/"):
                 return True
-            if path.startswith("/api/auth/"):
+            if path.startswith("/api/auth/") or path.startswith("/api/user/"):
                 return True
             return auth.valid(self._cookie(COOKIE_NAME))
 
@@ -279,6 +338,7 @@ def run(cfg: Config | None = None, host: str = "0.0.0.0", port: int = 8765,
         def do_GET(self) -> None:  # noqa: N802
             try:
                 url = urlparse(self.path)
+                app._local.user_id = self._user_id()
                 if not self._require_auth(url.path):
                     return
                 if url.path == "/api/wallpaper":
@@ -349,6 +409,16 @@ def run(cfg: Config | None = None, host: str = "0.0.0.0", port: int = 8765,
                 if url.path == "/api/auth/logout":
                     self._logout()
                     return
+                if url.path == "/api/user/login":
+                    self._user_login(body, register=False)
+                    return
+                if url.path == "/api/user/register":
+                    self._user_login(body, register=True)
+                    return
+                if url.path == "/api/user/logout":
+                    self._user_logout()
+                    return
+                app._local.user_id = self._user_id()
                 if not self._require_auth(url.path):
                     return
                 status, ctype, payload = handle("POST", url.path, parse_qs(url.query), body)
@@ -359,6 +429,7 @@ def run(cfg: Config | None = None, host: str = "0.0.0.0", port: int = 8765,
         def do_DELETE(self) -> None:  # noqa: N802
             try:
                 url = urlparse(self.path)
+                app._local.user_id = self._user_id()
                 if not self._require_auth(url.path):
                     return
                 status, ctype, payload = handle("DELETE", url.path, parse_qs(url.query), b"")

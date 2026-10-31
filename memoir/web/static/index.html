@@ -94,6 +94,32 @@
     <button class="icon-btn" id="drawerClose">✕</button>
   </div>
   <div class="drawer-body">
+    <section class="sec" id="accountSec">
+      <h3>账号</h3>
+      <div id="accGuest">
+        <label>邮箱<input id="accEmail" type="email" placeholder="you@example.com" autocomplete="username"></label>
+        <label>密码<input id="accPwd" type="password" placeholder="至少 6 位" autocomplete="current-password"></label>
+        <div class="row-actions">
+          <button class="btn primary" id="accLogin">登录</button>
+          <button class="btn" id="accRegister">注册</button>
+        </div>
+        <p class="note" id="accNote">邮箱只当账号用，不会发验证邮件。不想注册也能直接用。</p>
+      </div>
+      <div id="accUser" style="display:none">
+        <div class="acc-head">
+          <div class="acc-avatar" id="accAvatar">◈</div>
+          <div class="acc-info">
+            <b id="accName">—</b>
+            <p class="note" id="accMail"></p>
+          </div>
+        </div>
+        <div class="row-actions">
+          <button class="btn primary" id="accProfile">个人主页</button>
+          <button class="btn" id="accLogout">退出</button>
+        </div>
+      </div>
+    </section>
+
     <section class="sec">
       <h3>模型</h3>
       <label>接口地址<input id="setBaseUrl" placeholder="http://127.0.0.1:11434/v1"></label>
@@ -141,6 +167,21 @@
       </div>
       <p class="note" id="dataNote"></p>
     </section>
+  </div>
+</div>
+
+<div class="profile-layer" id="profileLayer">
+  <div class="profile-card">
+    <button class="icon-btn" id="profileClose" style="position:absolute;right:14px;top:14px">✕</button>
+    <div class="profile-avatar" id="pAvatar">◈</div>
+    <h2 id="pName">—</h2>
+    <p class="profile-bio" id="pBio">还没有写简介</p>
+    <div class="profile-stats" id="pStats"></div>
+    <div class="profile-edit">
+      <input id="pEditName" placeholder="昵称" maxlength="24">
+      <input id="pEditBio" placeholder="一句话简介" maxlength="120">
+      <button class="btn primary" id="pSave">保存</button>
+    </div>
   </div>
 </div>
 

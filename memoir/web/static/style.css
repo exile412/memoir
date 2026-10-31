@@ -342,3 +342,42 @@ pre code .c-num{color:#f78c6c}
 @media (max-width:860px){
   .reminder{margin:8px 12px 0;padding:8px 12px;font-size:12px;flex-wrap:wrap;gap:8px}
 }
+
+/* ---------- 账号 / 个人主页 ---------- */
+.acc-head{display:flex;align-items:center;gap:12px;margin-bottom:12px}
+.acc-avatar{
+  width:44px;height:44px;border-radius:12px;display:grid;place-items:center;
+  background:linear-gradient(140deg,#2a3a8f,#4d6bfe);color:#fff;font-size:18px;flex:none;
+}
+.acc-info b{font-size:14px;color:var(--text)}
+.acc-info .note{margin-top:2px}
+
+.profile-layer{
+  position:fixed;inset:0;z-index:60;display:none;align-items:center;justify-content:center;
+  background:rgba(0,0,0,.55);backdrop-filter:blur(2px);
+}
+.profile-layer.show{display:flex}
+.profile-card{
+  position:relative;width:420px;max-width:92vw;padding:34px 28px 24px;text-align:center;
+  background:var(--panel);border:1px solid var(--border);border-radius:18px;
+  box-shadow:0 28px 80px rgba(0,0,0,.6);
+}
+.profile-avatar{
+  width:76px;height:76px;margin:0 auto 14px;border-radius:22px;display:grid;place-items:center;
+  background:linear-gradient(140deg,#2a3a8f,#4d6bfe);color:#fff;font-size:30px;
+  box-shadow:0 10px 30px rgba(77,107,254,.4);
+}
+.profile-card h2{font-size:19px;margin-bottom:6px}
+.profile-bio{font-size:13px;color:var(--text-3);margin-bottom:18px;line-height:1.6}
+.profile-stats{
+  display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:20px;
+}
+.profile-stats div{background:var(--bg-soft);border:1px solid var(--border);border-radius:10px;padding:10px 4px}
+.profile-stats b{display:block;font-size:16px;color:var(--text)}
+.profile-stats span{font-size:11px;color:var(--text-3)}
+.profile-edit{display:flex;flex-direction:column;gap:8px}
+.profile-edit input{
+  height:34px;padding:0 12px;background:var(--bg-soft);border:1px solid var(--border);
+  border-radius:8px;color:var(--text);font-size:13px;
+}
+.profile-edit input:focus{border-color:var(--accent)}

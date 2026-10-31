@@ -216,6 +216,28 @@ def dispatch(app: Any, method: str, path: str, query: dict[str, list[str]],
         # 只能在未登录状态下清空（会要求当前密码），这里留作 CLI 辅助
         return _json({"error": "请在服务器上删除 ~/.memoir/auth.json 来重置"}, 400)
 
+    if method == "GET" and route == "user/me":
+        uid = app._current_user()
+        if not uid:
+            return _json({"loggedIn": False, "hasUsers": app.users.count() > 0})
+        stats = app.store.stats()
+        return _json({"loggedIn": True, "user": app.users.get(uid), "stats": stats})
+
+    if method == "POST" and route == "user/profile":
+        uid = app._current_user()
+        if not uid:
+            return _json({"error": "请先登录"}, 401)
+        try:
+            user = app.users.update(
+                uid,
+                nickname=payload.get("nickname"),
+                avatar=payload.get("avatar"),
+                bio=payload.get("bio"),
+            )
+            return _json({"ok": True, "user": user})
+        except ValueError as exc:
+            return _json({"error": str(exc)}, 400)
+
     if method == "POST" and route == "wallpaper/launch":
         import os
         import sys as _sys
