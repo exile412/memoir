@@ -383,3 +383,35 @@ pre code .c-num{color:#f78c6c}
   border-radius:8px;color:var(--text);font-size:13px;
 }
 .profile-edit input:focus{border-color:var(--accent)}
+
+/* ---------- 有壁纸时：整个界面透出来 ---------- */
+body.has-wallpaper{background:transparent}
+body.has-wallpaper .sidebar{
+  background:rgba(20,22,28,.62);
+  backdrop-filter:blur(18px) saturate(1.1);
+  -webkit-backdrop-filter:blur(18px) saturate(1.1);
+  border-right:1px solid rgba(255,255,255,.06);
+}
+body.has-wallpaper .main{background:rgba(10,13,18,.34)}
+body.has-wallpaper .topbar{
+  background:rgba(16,18,24,.42);
+  backdrop-filter:blur(14px);
+  -webkit-backdrop-filter:blur(14px);
+  border-bottom:1px solid rgba(255,255,255,.06);
+}
+body.has-wallpaper .composer{
+  background:linear-gradient(180deg,transparent,rgba(12,14,18,.55) 45%);
+}
+body.has-wallpaper .search{background:rgba(24,26,32,.6)}
+body.has-wallpaper .card,
+body.has-wallpaper .wall,
+body.has-wallpaper .sec input{background:rgba(20,22,28,.72)}
+body.has-wallpaper .item:hover{background:rgba(255,255,255,.05)}
+body.has-wallpaper .item.active{background:rgba(77,107,254,.16)}
+body.has-wallpaper .drawer{
+  background:rgba(24,26,32,.82);
+  backdrop-filter:blur(20px);
+  -webkit-backdrop-filter:blur(20px);
+}
+/* 侧栏和顶栏的分隔线在有壁纸时也淡一点 */
+body.has-wallpaper .sidebar *{border-color:rgba(255,255,255,.05)}
