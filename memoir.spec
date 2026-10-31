@@ -1,12 +1,19 @@
 # -*- mode: python ; coding: utf-8 -*-
+from PyInstaller.utils.hooks import collect_all
+
+datas = [('memoir/locales', 'memoir/locales'), ('memoir/web/static', 'memoir/web/static')]
+binaries = []
+hiddenimports = []
+tmp_ret = collect_all('webview')
+datas += tmp_ret[0]; binaries += tmp_ret[1]; hiddenimports += tmp_ret[2]
 
 
 a = Analysis(
     ['launcher.py'],
     pathex=['.'],
-    binaries=[],
-    datas=[('memoir/locales', 'memoir/locales'), ('memoir/web/static', 'memoir/web/static')],
-    hiddenimports=[],
+    binaries=binaries,
+    datas=datas,
+    hiddenimports=hiddenimports,
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
