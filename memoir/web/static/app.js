@@ -395,7 +395,8 @@ function startApp() {
     b.onclick = function () {
       var act = b.dataset.act;
       toggleSidebar(false);
-      if (act === 'review') doReview();
+      if (act === 'insights') openInsights();
+      else if (act === 'review') doReview();
       else if (act === 'persona') doPersona();
       else openDrawer();
     };
@@ -442,6 +443,37 @@ function startApp() {
   } catch (e) { console.error('startApp bind error', e); }
 }
 
+
+function openInsights() {
+  api('insights?days=30').then(function (d) {
+    if (d.error) return;
+    var el = document.getElementById('insightStats');
+    el.innerHTML = [
+      ['总记录', d.total],
+      ['连续天数', d.streak + ' 天'],
+      ['活跃时段', (function () {
+        if (!d.hours.length) return '—';
+        var top = d.hours.slice().sort(function (a, b) { return b.count - a.count; })[0];
+        return top.hour + ':00';
+      })()]
+    ].map(function (p) { return '<div><b>' + p[1] + '</b><span>' + p[0] + '</span></div>'; }).join('');
+
+    var max = Math.max.apply(null, d.series.map(function (x) { return x.count; }).concat([1]));
+    var bars = document.getElementById('insightBars');
+    bars.innerHTML = d.series.map(function (x) {
+      var hpx = x.count ? Math.max(4, Math.round(x.count / max * 100)) : 2;
+      var mood = x.mood === null ? '' : (x.mood > 0 ? ' 情绪+' + x.mood : ' 情绪' + x.mood);
+      return '<i class="' + (x.count ? '' : 'empty') + '" style="height:' + hpx + '%" title="' +
+        x.day + '：' + x.count + ' 条' + mood + '"></i>';
+    }).join('');
+
+    var foot = document.getElementById('insightFoot');
+    var kinds = (d.kinds || []).map(function (k) { return '<span>' + (kindLabel(k.kind)) + ' ' + k.count + '</span>'; });
+    foot.innerHTML = kinds.join('') || '<span>还没有记录</span>';
+
+    document.getElementById('insightLayer').classList.add('show');
+  });
+}
 // ---------- 登录 ----------
 var authMode = 'login';
 
@@ -521,6 +553,9 @@ function checkReminder() {
 
 
 function boot() {
+  if (document.getElementById('insightClose')) document.getElementById('insightClose').onclick = function () {
+    document.getElementById('insightLayer').classList.remove('show');
+  };
   // 所有 DOM 绑定都包在 try 里：少一个元素也不能拖垮登录流程
   try {
     $('authBtn').onclick = doAuth;

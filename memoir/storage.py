@@ -115,6 +115,11 @@ class Store:
             )
         except sqlite3.OperationalError:
             pass
+        # 已经不做多用户了：把历史上归属某个账号的记录归零，否则界面上看不见
+        try:
+            self.conn.execute("UPDATE entries SET user_id = 0 WHERE user_id != 0")
+        except sqlite3.OperationalError:
+            pass
         self.conn.commit()
         restrict_permissions(self.path)
         self.current_user_id = 0
@@ -292,6 +297,66 @@ class Store:
             if len(seen) >= limit:
                 break
         return seen
+
+    def insights(self, days: int = 30) -> dict[str, Any]:
+        """给界面画图用的统计：近 N 天记录数、情绪均值、时段分布、类型分布、连续天数。"""
+        from datetime import date as _date
+        from datetime import timedelta
+
+        uid = getattr(self, "current_user_id", 0)
+        today = _date.today()
+        since = (today - timedelta(days=days - 1)).isoformat()
+
+        with self._lock:
+            rows = self.conn.execute(
+                "SELECT day, COUNT(*) n, AVG(mood) m FROM entries"
+                " WHERE day >= ? AND user_id = ? GROUP BY day ORDER BY day",
+                (since, uid),
+            ).fetchall()
+            by_day = {r["day"]: {"n": int(r["n"]), "mood": r["m"]} for r in rows}
+
+            kinds = self.conn.execute(
+                "SELECT kind, COUNT(*) c FROM entries WHERE user_id = ? GROUP BY kind"
+                " ORDER BY c DESC",
+                (uid,),
+            ).fetchall()
+
+            hours = self.conn.execute(
+                "SELECT substr(ts, 12, 2) h, COUNT(*) c FROM entries WHERE user_id = ?"
+                " GROUP BY h ORDER BY h",
+                (uid,),
+            ).fetchall()
+
+            days_rows = [
+                r["day"]
+                for r in self.conn.execute(
+                    "SELECT DISTINCT day FROM entries WHERE user_id = ? ORDER BY day DESC",
+                    (uid,),
+                ).fetchall()
+            ]
+
+        series = []
+        for i in range(days):
+            d = (today - timedelta(days=days - 1 - i)).isoformat()
+            item = by_day.get(d)
+            series.append({"day": d, "count": item["n"] if item else 0,
+                           "mood": round(item["mood"], 2) if item and item["mood"] is not None else None})
+
+        streak = 0
+        cursor = today
+        have = {d for d in days_rows}
+        while cursor.isoformat() in have:
+            streak += 1
+            cursor -= timedelta(days=1)
+
+        return {
+            "days": days,
+            "series": series,
+            "streak": streak,
+            "total": sum(v["n"] for v in by_day.values()),
+            "kinds": [{"kind": r["kind"], "count": int(r["c"])} for r in kinds],
+            "hours": [{"hour": r["h"], "count": int(r["c"])} for r in hours],
+        }
 
     def claim_anonymous(self, user_id: int) -> int:
         """把未登录时记下的条目并入某个账号（注册时调用，幂等）。"""

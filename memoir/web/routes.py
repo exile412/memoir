@@ -216,6 +216,11 @@ def dispatch(app: Any, method: str, path: str, query: dict[str, list[str]],
         # 只能在未登录状态下清空（会要求当前密码），这里留作 CLI 辅助
         return _json({"error": "请在服务器上删除 ~/.memoir/auth.json 来重置"}, 400)
 
+    if method == "GET" and route == "insights":
+        days = int((query.get("days") or ["30"])[0])
+        days = max(7, min(365, days))
+        return _json(app.store.insights(days))
+
     if method == "GET" and route == "user/me":
         uid = app._current_user()
         if not uid:

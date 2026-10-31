@@ -40,6 +40,7 @@
   <div class="list" id="list"></div>
 
   <div class="side-foot">
+    <button class="foot-btn" data-act="insights"><i>▦</i>数据洞察</button>
     <button class="foot-btn" data-act="review"><i>▤</i>生成复盘</button>
     <button class="foot-btn" data-act="persona"><i>◍</i>人格档案</button>
     <button class="foot-btn" data-act="settings"><i>⚙</i>设置</button>
@@ -144,6 +145,16 @@
       </div>
       <p class="note" id="dataNote"></p>
     </section>
+  </div>
+</div>
+
+<div class="insight-layer" id="insightLayer">
+  <div class="insight-card">
+    <button class="icon-btn" id="insightClose" style="position:absolute;right:14px;top:14px">✕</button>
+    <h2>最近 30 天</h2>
+    <div class="insight-stats" id="insightStats"></div>
+    <div class="insight-bars" id="insightBars"></div>
+    <div class="insight-foot" id="insightFoot"></div>
   </div>
 </div>
 
