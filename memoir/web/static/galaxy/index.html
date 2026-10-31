@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>记忆银河 · GALAXY</title>
+<link rel="stylesheet" href="/static/galaxy/galaxy.css">
+</head>
+<body>
+<canvas id="sky"></canvas>
+
+<aside class="panel panel-left">
+  <h1>记忆银河 <span>· GALAXY</span></h1>
+  <div class="stats" id="stats">
+    <div><b id="sTotal">0</b><span>记忆点</span></div>
+    <div><b id="sMood">0</b><span>平均情绪</span></div>
+    <div><b id="sDays">0</b><span>天数</span></div>
+    <div><b id="sFolders">0</b><span>文件夹</span></div>
+  </div>
+  <div class="btns">
+    <button id="btnSpin" class="on">自转</button>
+    <button id="btnGlow" class="on">光斑</button>
+    <button id="btnLabel" class="on">标签</button>
+    <button id="btnTop">俯视</button>
+    <button id="btnReset">重置</button>
+  </div>
+  <input id="search" placeholder="搜索记忆（内容 / 类型）" autocomplete="off">
+  <div class="hits" id="hits"></div>
+</aside>
+
+<aside class="panel panel-right">
+  <h2>分类分布</h2>
+  <ul class="levels" id="levels"></ul>
+  <h2>数据集</h2>
+  <div class="meta" id="meta"></div>
+  <h2>已记住的事</h2>
+  <ul class="memory-list" id="recent"></ul>
+</aside>
+
+<footer class="timeline">
+  <div class="tl-head">
+    <span>时间范围</span>
+    <b id="rangeLabel">全部</b>
+  </div>
+  <input type="range" id="tl" min="0" max="100" value="100">
+  <div class="tl-ticks"><span>最早</span><span>中间</span><span>今天</span></div>
+</footer>
+
+<div class="hud" id="hud"></div>
+<div class="tip" id="tip"></div>
+
+<script src="/static/galaxy/galaxy.js"></script>
+</body>
+</html>

@@ -436,7 +436,8 @@ function startApp() {
     b.onclick = function () {
       var act = b.dataset.act;
       toggleSidebar(false);
-      if (act === 'insights') openInsights();
+      if (act === 'galaxy') openGalaxy();
+      else if (act === 'insights') openInsights();
       else if (act === 'review') doReview();
       else if (act === 'persona') doPersona();
       else openDrawer();
@@ -484,6 +485,21 @@ function startApp() {
   } catch (e) { console.error('startApp bind error', e); }
 }
 
+
+function openGalaxy() {
+  var layer = document.getElementById('galaxyLayer');
+  var frame = document.getElementById('galaxyFrame');
+  if (!layer || !frame) return;
+  if (!frame.src || frame.src.indexOf('galaxy') < 0) {
+    frame.src = '/static/galaxy/index.html?v=' + Date.now();
+  }
+  layer.classList.add('show');
+  if (document.getElementById('galaxyClose')) {
+    document.getElementById('galaxyClose').onclick = function () {
+      layer.classList.remove('show');
+    };
+  }
+}
 
 function openInsights() {
   api('insights?days=30').then(function (d) {

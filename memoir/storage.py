@@ -494,6 +494,46 @@ class Store:
             ).fetchone()
         return int(row["id"]) if row else None
 
+    def galaxy_points(self, limit: int = 4000) -> dict[str, Any]:
+        """星图用：全量条目（按时间排）+ 粗统计。"""
+        uid = getattr(self, "current_user_id", 0)
+        with self._lock:
+            rows = self.conn.execute(
+                "SELECT id, ts, day, kind, mood, author, folder_id,"
+                " substr(text, 1, 120) t FROM entries WHERE user_id = ?"
+                " ORDER BY ts ASC LIMIT ?",
+                (uid, limit),
+            ).fetchall()
+            kinds = self.conn.execute(
+                "SELECT kind, COUNT(*) c FROM entries WHERE user_id = ? GROUP BY kind"
+                " ORDER BY c DESC",
+                (uid,),
+            ).fetchall()
+            folders = {
+                r["id"]: r["name"]
+                for r in self.conn.execute("SELECT id, name FROM folders").fetchall()
+            }
+        pts = [
+            {
+                "id": r["id"], "ts": r["ts"], "day": r["day"], "kind": r["kind"],
+                "mood": r["mood"], "author": r["author"],
+                "folder": folders.get(r["folder_id"], ""),
+                "text": r["t"],
+            }
+            for r in rows
+        ]
+        moods = [p["mood"] for p in pts if p["mood"] is not None]
+        return {
+            "points": pts,
+            "stats": {
+                "total": len(pts),
+                "avgMood": round(sum(moods) / len(moods), 2) if moods else 0,
+                "days": len({p["day"] for p in pts}),
+                "folders": len(folders),
+            },
+            "kinds": [{"kind": r["kind"], "count": int(r["c"])} for r in kinds],
+        }
+
     def insights(self, days: int = 30) -> dict[str, Any]:
         """给界面画图用的统计：近 N 天记录数、情绪均值、时段分布、类型分布、连续天数。"""
         from datetime import date as _date

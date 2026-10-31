@@ -130,6 +130,9 @@ def dispatch(app: Any, method: str, path: str, query: dict[str, list[str]],
         except (ValueError, TypeError) as exc:
             return _json({"error": str(exc)}, 400)
 
+    if method == "GET" and route == "galaxy":
+        return _json(app.store.galaxy_points())
+
     if method == "GET" and route == "byauthor":
         return _json({"counts": app.store.by_author()})
 
