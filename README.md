@@ -65,7 +65,7 @@ python -m memoir --help
 ### 验证
 
 ```bash
-memoir --version        # memoir 0.5.0
+memoir --version        # memoir 0.6.0
 memoir config           # 打印当前配置和数据目录
 ```
 
