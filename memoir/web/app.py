@@ -235,7 +235,10 @@ def run(cfg: Config | None = None, host: str = "0.0.0.0", port: int = 8765,
 
         def _user_id(self) -> int | None:
             token = self._cookie(USER_COOKIE)
-            return app.users.check_token(token) if token else None
+            uid = app.users.check_token(token) if token else None
+            # 每个请求把当前用户写进 store，查询自动按人隔离
+            app.store.current_user_id = uid or 0
+            return uid
 
         def _user_login(self, body: bytes, register: bool) -> None:
             try:
@@ -251,6 +254,9 @@ def run(cfg: Config | None = None, host: str = "0.0.0.0", port: int = 8765,
                     if register
                     else app.users.login(email, password)
                 )
+                if register:
+                    # 注册时把未登录状态下的记录并入这个账号
+                    app.store.claim_anonymous(int(user["id"]))
             except ValueError as exc:
                 self._json(400, {"error": str(exc)})
                 return

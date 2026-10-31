@@ -21,6 +21,7 @@ from .models import Entry, PersonaFact, Review
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS entries (
     id      INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL DEFAULT 0,
     ts      TEXT NOT NULL,
     day     TEXT NOT NULL,
     kind    TEXT NOT NULL DEFAULT 'event',
@@ -107,8 +108,16 @@ class Store:
         self.conn.execute("PRAGMA journal_mode=WAL")
         self.conn.execute("PRAGMA foreign_keys=ON")
         self.conn.executescript(SCHEMA)
+        # 老库迁移：补 user_id 列（0 = 未登录时的本地账本）
+        try:
+            self.conn.execute(
+                "ALTER TABLE entries ADD COLUMN user_id INTEGER NOT NULL DEFAULT 0"
+            )
+        except sqlite3.OperationalError:
+            pass
         self.conn.commit()
         restrict_permissions(self.path)
+        self.current_user_id = 0
 
     # ---------------- 基础 ----------------
     def close(self) -> None:
@@ -145,11 +154,12 @@ class Store:
             mood,
             source,
             json.dumps(meta or {}, ensure_ascii=False),
+            getattr(self, "current_user_id", 0),
         )
         with self._lock:
             cur = self.conn.execute(
-                "INSERT INTO entries(ts, day, kind, text, tags, mood, source, meta)"
-                " VALUES (?,?,?,?,?,?,?,?)",
+                "INSERT INTO entries(ts, day, kind, text, tags, mood, source, meta, user_id)"
+                " VALUES (?,?,?,?,?,?,?,?,?)",
                 row,
             )
             self.conn.commit()
@@ -174,8 +184,8 @@ class Store:
         )
 
     def entries_for_day(self, day: str, kinds: Iterable[str] | None = None) -> list[Entry]:
-        sql = "SELECT * FROM entries WHERE day = ?"
-        params: list[Any] = [day]
+        sql = "SELECT * FROM entries WHERE day = ? AND user_id = ?"
+        params: list[Any] = [day, getattr(self, "current_user_id", 0)]
         if kinds:
             ks = list(kinds)
             sql += f" AND kind IN ({','.join('?' * len(ks))})"
@@ -188,23 +198,26 @@ class Store:
     def entries_between(self, start_day: str, end_day: str) -> list[Entry]:
         with self._lock:
             rows = self.conn.execute(
-                "SELECT * FROM entries WHERE day >= ? AND day <= ? ORDER BY ts ASC, id ASC",
-                (start_day, end_day),
+                "SELECT * FROM entries WHERE day >= ? AND day <= ? AND user_id = ?"
+                " ORDER BY ts ASC, id ASC",
+                (start_day, end_day, getattr(self, "current_user_id", 0)),
             ).fetchall()
         return [self._to_entry(r) for r in rows]
 
     def recent(self, limit: int = 20) -> list[Entry]:
         with self._lock:
             rows = self.conn.execute(
-                "SELECT * FROM entries ORDER BY ts DESC, id DESC LIMIT ?", (limit,)
+                "SELECT * FROM entries WHERE user_id = ? ORDER BY ts DESC, id DESC LIMIT ?",
+                (getattr(self, "current_user_id", 0), limit)
             ).fetchall()
         return [self._to_entry(r) for r in rows]
 
     def days_with_entries(self, limit: int = 30) -> list[str]:
         with self._lock:
             rows = self.conn.execute(
-                "SELECT day, COUNT(*) c FROM entries GROUP BY day ORDER BY day DESC LIMIT ?",
-                (limit,),
+                "SELECT day, COUNT(*) c FROM entries WHERE user_id = ?"
+                " GROUP BY day ORDER BY day DESC LIMIT ?",
+                (getattr(self, "current_user_id", 0), limit),
             ).fetchall()
         return [r["day"] for r in rows]
 
@@ -280,9 +293,23 @@ class Store:
                 break
         return seen
 
+    def claim_anonymous(self, user_id: int) -> int:
+        """把未登录时记下的条目并入某个账号（注册时调用，幂等）。"""
+        with self._lock:
+            cur = self.conn.execute(
+                "UPDATE entries SET user_id = ? WHERE user_id = 0", (user_id,)
+            )
+            self.conn.commit()
+            return cur.rowcount
+
     def count_entries(self) -> int:
         with self._lock:
-            return int(self.conn.execute("SELECT COUNT(*) c FROM entries").fetchone()["c"])
+            return int(
+                self.conn.execute(
+                    "SELECT COUNT(*) c FROM entries WHERE user_id = ?",
+                    (getattr(self, "current_user_id", 0),),
+                ).fetchone()["c"]
+            )
 
     # ---------------- 复盘 ----------------
     def save_review(self, review: Review) -> None:

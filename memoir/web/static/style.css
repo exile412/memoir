@@ -36,14 +36,16 @@ body{
   position:fixed;inset:0;z-index:-2;overflow:hidden;display:none;background:#0b0b0b;
 }
 .wallpaper-layer.show{display:block}
+/* 亮度可调：太暗看不清壁纸，太亮又压不住文字 */
+:root{--wp-brightness:.68;--wp-veil:.28}
 .wallpaper-layer img,
 .wallpaper-layer video{
   position:absolute;inset:0;width:100%;height:100%;object-fit:cover;
-  filter:brightness(.42) saturate(.9);transform:scale(1.03);
+  filter:brightness(var(--wp-brightness)) saturate(.95);transform:scale(1.03);
 }
 body.has-wallpaper::after{
   content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;
-  background:linear-gradient(180deg,rgba(10,10,10,.5),rgba(10,10,10,.78));
+  background:linear-gradient(180deg,rgba(10,10,10,var(--wp-veil)),rgba(10,10,10,calc(var(--wp-veil) + .18)));
 }
 .wall-badge{
   position:absolute;top:6px;right:6px;font-size:10px;padding:1px 6px;border-radius:5px;

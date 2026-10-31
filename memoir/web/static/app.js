@@ -316,6 +316,18 @@ function applyWallpaper(id, kind) {
   localStorage.setItem('memoir.wallpaper', JSON.stringify({ id: id, kind: kind || 'image' }));
 }
 
+function applyBright(v) {
+  var n = Math.max(30, Math.min(100, parseInt(v, 10) || 68)) / 100;
+  document.documentElement.style.setProperty('--wp-brightness', n.toFixed(2));
+  // 亮一点就把遮罩也减一点，否则白调
+  var veil = Math.max(0.12, 0.5 - n * 0.32).toFixed(2);
+  document.documentElement.style.setProperty('--wp-veil', veil);
+  localStorage.setItem('memoir.wpBright', String(Math.round(n * 100)));
+  if (document.getElementById('wpVal')) {
+    document.getElementById('wpVal').textContent = Math.round(n * 100) + '%';
+  }
+}
+
 function restoreWallpaper() {
   var raw = localStorage.getItem('memoir.wallpaper');
   if (!raw) return;
@@ -395,6 +407,12 @@ function startApp() {
   $('testModel').onclick = testModel;
   $('reloadWallpapers').onclick = loadWallpapers;
   $('clearWallpaper').onclick = function () { applyWallpaper(null); };
+  if ($('wpBright')) {
+    var saved = localStorage.getItem('memoir.wpBright') || '68';
+    $('wpBright').value = saved;
+    applyBright(saved);
+    $('wpBright').oninput = function () { applyBright(this.value); };
+  }
   if ($('launchWE')) $('launchWE').onclick = function () {
     api('wallpaper/launch', { method: 'POST', body: {} }).then(function (r) {
       $('dataNote').textContent = r.ok ? '已请求启动 Wallpaper Engine' : ('启动失败：' + r.error);
