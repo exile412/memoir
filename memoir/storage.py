@@ -109,6 +109,17 @@ class Store:
         self.conn.execute("PRAGMA journal_mode=WAL")
         self.conn.execute("PRAGMA foreign_keys=ON")
         self.conn.executescript(SCHEMA)
+        self.conn.executescript(
+            """
+            CREATE TABLE IF NOT EXISTS folders (
+                id         INTEGER PRIMARY KEY AUTOINCREMENT,
+                name       TEXT NOT NULL,
+                parent_id  INTEGER,
+                sort       INTEGER NOT NULL DEFAULT 0,
+                created_at TEXT NOT NULL
+            );
+            """
+        )
         # 老库迁移：补 user_id 列（0 = 未登录时的本地账本）
         try:
             self.conn.execute(
@@ -120,6 +131,10 @@ class Store:
             self.conn.execute(
                 "ALTER TABLE entries ADD COLUMN author TEXT NOT NULL DEFAULT 'me'"
             )
+        except sqlite3.OperationalError:
+            pass
+        try:
+            self.conn.execute("ALTER TABLE entries ADD COLUMN folder_id INTEGER")
         except sqlite3.OperationalError:
             pass
         # 已经不做多用户了：把历史上归属某个账号的记录归零，否则界面上看不见
@@ -328,6 +343,143 @@ class Store:
                 (getattr(self, "current_user_id", 0), author, limit),
             ).fetchall()
         return [self._to_entry(r) for r in rows]
+
+    # ---------- 文件夹 ----------
+    def folder_tree(self) -> list[dict[str, Any]]:
+        """返回整棵树（含每个文件夹的直接条目数）。"""
+        uid = getattr(self, "current_user_id", 0)
+        with self._lock:
+            rows = self.conn.execute(
+                "SELECT * FROM folders ORDER BY sort ASC, id ASC"
+            ).fetchall()
+            counts = {
+                r["folder_id"]: int(r["c"])
+                for r in self.conn.execute(
+                    "SELECT folder_id, COUNT(*) c FROM entries"
+                    " WHERE user_id = ? AND folder_id IS NOT NULL GROUP BY folder_id",
+                    (uid,),
+                ).fetchall()
+            }
+        nodes = {
+            r["id"]: {
+                "id": r["id"], "name": r["name"], "parentId": r["parent_id"],
+                "sort": r["sort"], "count": counts.get(r["id"], 0), "children": [],
+            }
+            for r in rows
+        }
+        roots: list[dict[str, Any]] = []
+        for n in nodes.values():
+            parent = nodes.get(n["parentId"]) if n["parentId"] else None
+            if parent is None:
+                roots.append(n)
+            else:
+                parent["children"].append(n)
+        return roots
+
+    def folder_add(self, name: str, parent_id: int | None = None) -> int:
+        name = (name or "").strip()[:40]
+        if not name:
+            raise ValueError("名字不能为空")
+        with self._lock:
+            row = self.conn.execute(
+                "SELECT COALESCE(MAX(sort), -1) + 1 s FROM folders WHERE parent_id IS ?",
+                (parent_id,),
+            ).fetchone()
+            cur = self.conn.execute(
+                "INSERT INTO folders(name, parent_id, sort, created_at) VALUES (?,?,?,?)",
+                (name, parent_id, int(row["s"]), _now().isoformat(timespec="seconds")),
+            )
+            self.conn.commit()
+            return int(cur.lastrowid)
+
+    def folder_rename(self, folder_id: int, name: str) -> None:
+        name = (name or "").strip()[:40]
+        if not name:
+            raise ValueError("名字不能为空")
+        with self._lock:
+            self.conn.execute("UPDATE folders SET name = ? WHERE id = ?", (name, folder_id))
+            self.conn.commit()
+
+    def folder_delete(self, folder_id: int) -> int:
+        """删文件夹：子文件夹一起删，里面的条目回到根。"""
+        killed: list[int] = []
+        with self._lock:
+            stack = [folder_id]
+            while stack:
+                cur = stack.pop()
+                killed.append(cur)
+                stack.extend(
+                    r["id"]
+                    for r in self.conn.execute(
+                        "SELECT id FROM folders WHERE parent_id = ?", (cur,)
+                    ).fetchall()
+                )
+            marks = ",".join("?" * len(killed))
+            self.conn.execute(
+                f"UPDATE entries SET folder_id = NULL WHERE folder_id IN ({marks})", killed
+            )
+            self.conn.execute(f"DELETE FROM folders WHERE id IN ({marks})", killed)
+            self.conn.commit()
+        return len(killed)
+
+    def folder_move(self, folder_id: int, parent_id: int | None, sort: int) -> None:
+        """挪动文件夹：防成环（不能挪进自己的子孙里）。"""
+        with self._lock:
+            if parent_id is not None:
+                # 从被移动的节点往下找，撞见目标父节点就是成环
+                stack = [folder_id]
+                seen = set()
+                while stack:
+                    cur = stack.pop()
+                    if cur == parent_id:
+                        raise ValueError("不能把文件夹移进它自己里面")
+                    if cur in seen:
+                        continue
+                    seen.add(cur)
+                    stack.extend(
+                        r["id"]
+                        for r in self.conn.execute(
+                            "SELECT id FROM folders WHERE parent_id = ?", (cur,)
+                        ).fetchall()
+                    )
+            self.conn.execute(
+                "UPDATE folders SET parent_id = ?, sort = ? WHERE id = ?",
+                (parent_id, sort, folder_id),
+            )
+            self.conn.commit()
+
+    def entry_move(self, entry_id: int, folder_id: int | None) -> None:
+        with self._lock:
+            self.conn.execute(
+                "UPDATE entries SET folder_id = ? WHERE id = ?", (folder_id, entry_id)
+            )
+            self.conn.commit()
+
+    def entries_in_folder(self, folder_id: int | None, limit: int = 200) -> list[Entry]:
+        uid = getattr(self, "current_user_id", 0)
+        with self._lock:
+            if folder_id is None:
+                rows = self.conn.execute(
+                    "SELECT * FROM entries WHERE user_id = ? AND folder_id IS NULL"
+                    " ORDER BY ts DESC, id DESC LIMIT ?",
+                    (uid, limit),
+                ).fetchall()
+            else:
+                rows = self.conn.execute(
+                    "SELECT * FROM entries WHERE user_id = ? AND folder_id = ?"
+                    " ORDER BY ts DESC, id DESC LIMIT ?",
+                    (uid, folder_id, limit),
+                ).fetchall()
+        return [self._to_entry(r) for r in rows]
+
+    def ensure_default_folders(self) -> None:
+        """首次启动给几个分类，省得面对空树。"""
+        with self._lock:
+            n = int(self.conn.execute("SELECT COUNT(*) c FROM folders").fetchone()["c"])
+        if n:
+            return
+        for name in ("日常记录", "心里话", "性格笔记", "模型配置"):
+            self.folder_add(name)
 
     def insights(self, days: int = 30) -> dict[str, Any]:
         """给界面画图用的统计：近 N 天记录数、情绪均值、时段分布、类型分布、连续天数。"""

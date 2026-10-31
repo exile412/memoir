@@ -113,7 +113,7 @@ function loadEntries() {
   return api(url).then(function (res) {
     state.entries = res.entries || [];
     renderList();
-    loadGroups();
+    loadTree();
   });
 }
 
@@ -222,7 +222,8 @@ function send() {
     if (res.entry && res.entry.meta && res.entry.meta.original) {
       push(bubble('ai', '<div class="txt" style="color:var(--text-3);font-size:13px">原文已保留，随时可对照。</div>'));
     }
-    loadEntries();
+    restoreOpen();
+    loadTree();
   }).catch(function (err) {
     setBusy(false);
     setHint('请求失败：' + err);
@@ -489,7 +490,7 @@ function startApp() {
     $('notesNote').textContent = '同步中…';
     api('notes/sync', { method: 'POST', body: {} }).then(function (r) {
       $('notesNote').textContent = '新增 ' + r.added + ' / 更新 ' + r.updated + ' / 删除 ' + r.removed;
-      loadEntries();
+      loadTree();
     });
   };
   $('refreshBtn').onclick = function () { loadEntries(); loadSettings(); };
@@ -606,7 +607,256 @@ function checkReminder() {
 }
 
 
+
+// ---------- 侧栏树 ----------
+var treeState = { folders: [], entriesByFolder: {}, open: {}, sel: null, drag: null };
+
+function loadTree() {
+  return api('folders').then(function (r) {
+    treeState.folders = r.folders || [];
+    return fetchEntriesForTree(treeState.folders);
+  }).then(function () { renderTree(); });
+}
+
+function walkFolders(list, fn) {
+  (list || []).forEach(function (f) { fn(f); walkFolders(f.children, fn); });
+}
+
+function fetchEntriesForTree(list) {
+  var ids = [];
+  walkFolders(list, function (f) { ids.push(f.id); });
+  return Promise.all(ids.map(function (id) {
+    return api('entries?folder=' + id + '&limit=30').then(function (r) {
+      treeState.entriesByFolder[id] = r.entries || [];
+    });
+  }));
+}
+
+function saveOpen() {
+  try { localStorage.setItem('memoir.treeOpen', JSON.stringify(treeState.open)); } catch (e) {}
+}
+
+function restoreOpen() {
+  try {
+    var raw = localStorage.getItem('memoir.treeOpen');
+    treeState.open = raw ? JSON.parse(raw) : {};
+  } catch (e) { treeState.open = {}; }
+}
+
+function renderTree() {
+  var box = document.getElementById('tree');
+  if (!box) return;
+  box.innerHTML = '';
+  if (!treeState.folders.length) {
+    box.innerHTML = '<div class="tree-empty">还没有文件夹，点上面「+ 文件夹」新建</div>';
+    return;
+  }
+  treeState.folders.forEach(function (f) { box.appendChild(buildFolderNode(f, 0)); });
+}
+
+function buildFolderNode(f, depth) {
+  var wrap = document.createElement('div');
+  wrap.className = 'tnode';
+  wrap.dataset.id = f.id;
+  wrap.dataset.type = 'folder';
+
+  var row = document.createElement('div');
+  row.className = 'trow' + (treeState.sel && treeState.sel.id === f.id ? ' sel' : '');
+  row.dataset.id = f.id;
+  row.dataset.type = 'folder';
+  row.draggable = true;
+  var open = !!treeState.open[f.id];
+  row.innerHTML =
+    '<span class="tcaret' + (open ? ' open' : '') + '">▶</span>' +
+    '<span class="ticon">' + (open ? '📂' : '📁') + '</span>' +
+    '<span class="tname">' + esc(f.name) + '</span>' +
+    '<span class="tcount">' + (f.count || '') + '</span>';
+
+  row.onclick = function (ev) {
+    if (ev.target.classList.contains('tcaret')) {
+      treeState.open[f.id] = !treeState.open[f.id];
+      saveOpen(); renderTree();
+      return;
+    }
+    treeState.sel = { type: 'folder', id: f.id, name: f.name };
+    renderTree();
+    showFolderEntries(f);
+  };
+
+  row.oncontextmenu = function (ev) {
+    ev.preventDefault();
+    showCtxMenu(ev.clientX, ev.clientY, f);
+  };
+
+  bindDrag(row, { type: 'folder', id: f.id });
+  wrap.appendChild(row);
+
+  if (open) {
+    var kids = document.createElement('div');
+    kids.className = 'tkids';
+    (f.children || []).forEach(function (c) { kids.appendChild(buildFolderNode(c, depth + 1)); });
+    var list = treeState.entriesByFolder[f.id] || [];
+    list.slice(0, 20).forEach(function (e) { kids.appendChild(buildEntryLeaf(e)); });
+    if (!kids.children.length) {
+      kids.innerHTML = '<div class="tree-empty" style="padding:6px 8px">空</div>';
+    }
+    wrap.appendChild(kids);
+  }
+  return wrap;
+}
+
+function buildEntryLeaf(e) {
+  var row = document.createElement('div');
+  row.className = 'trow tleaf' + (treeState.sel && treeState.sel.type === 'entry' && treeState.sel.id === e.id ? ' sel' : '');
+  row.dataset.id = e.id;
+  row.dataset.type = 'entry';
+  row.draggable = true;
+  var t = (e.ts || '').slice(11, 16);
+  var title = e.title || (e.text || '').slice(0, 16);
+  row.innerHTML = '<span class="tcaret"></span>' +
+    '<span class="tname">' + t + ' ' + esc(title) + '</span>';
+  row.onclick = function () {
+    treeState.sel = { type: 'entry', id: e.id };
+    renderTree();
+    showEntryDetail(e);
+  };
+  bindDrag(row, { type: 'entry', id: e.id });
+  return row;
+}
+
+function bindDrag(el, info) {
+  el.addEventListener('dragstart', function (ev) {
+    treeState.drag = info;
+    el.classList.add('dragging');
+    ev.dataTransfer.effectAllowed = 'move';
+    ev.dataTransfer.setData('text/plain', info.type + ':' + info.id);
+  });
+  el.addEventListener('dragend', function () {
+    el.classList.remove('dragging');
+    treeState.drag = null;
+    Array.prototype.forEach.call(document.querySelectorAll('.drop-into'), function (n) {
+      n.classList.remove('drop-into');
+    });
+  });
+  if (info.type !== 'folder') return;
+
+  el.addEventListener('dragover', function (ev) {
+    if (!treeState.drag) return;
+    ev.preventDefault();
+    ev.dataTransfer.dropEffect = 'move';
+    el.classList.add('drop-into');
+  });
+  el.addEventListener('dragleave', function () { el.classList.remove('drop-into'); });
+  el.addEventListener('drop', function (ev) {
+    ev.preventDefault();
+    el.classList.remove('drop-into');
+    var d = treeState.drag;
+    if (!d) return;
+    if (d.type === 'folder') {
+      if (d.id === info.id) return;
+      api('folders/move', { method: 'POST', body: { id: d.id, parentId: info.id, sort: 0 } })
+        .then(function (r) {
+          if (r.error) { toast(r.error); return; }
+          loadTree();
+        });
+    } else {
+      api('entries/move', { method: 'POST', body: { id: d.id, folderId: info.id } })
+        .then(function () { loadTree(); });
+    }
+  });
+}
+
+function showFolderEntries(f) {
+  api('entries?folder=' + f.id + '&limit=60').then(function (r) {
+    state.entries = r.entries || [];
+    state.currentId = null;
+    clearChat();
+    if (!state.entries.length) {
+      push(bubble('ai', '「' + f.name + '」里还没有东西。把条目拖进来，或者直接写一条。'));
+      return;
+    }
+    state.entries.forEach(function (e) {
+      var b = document.createElement('div');
+      b.className = 'msg ai';
+      var when = (e.ts || '').slice(0, 16).replace('T', ' ');
+      b.innerHTML = '<div class="bubble">' + formatText(e.text) +
+        '<div class="meta">' + when + ' · ' + esc(kindLabel(e.kind)) + '</div></div>';
+      document.getElementById('chat').appendChild(b);
+    });
+  });
+}
+
+function showCtxMenu(x, y, f) {
+  closeCtxMenu();
+  var menu = document.createElement('div');
+  menu.className = 'ctx';
+  menu.id = 'ctxMenu';
+  menu.style.left = x + 'px';
+  menu.style.top = y + 'px';
+  menu.innerHTML =
+    '<button data-act="new">新建子文件夹</button>' +
+    '<button data-act="rename">重命名</button>' +
+    '<button data-act="delete" class="danger">删除</button>';
+  document.body.appendChild(menu);
+  Array.prototype.forEach.call(menu.querySelectorAll('button'), function (b) {
+    b.onclick = function () {
+      var act = b.dataset.act;
+      closeCtxMenu();
+      if (act === 'new') newFolder(f.id);
+      else if (act === 'rename') renameFolder(f);
+      else if (act === 'delete') deleteFolder(f);
+    };
+  });
+}
+
+function closeCtxMenu() {
+  var m = document.getElementById('ctxMenu');
+  if (m) m.remove();
+}
+
+function newFolder(parentId) {
+  var name = prompt('文件夹名字', '新文件夹');
+  if (!name) return;
+  api('folders/add', { method: 'POST', body: { name: name, parentId: parentId || null } })
+    .then(function (r) {
+      if (r.error) { toast(r.error); return; }
+      if (parentId) treeState.open[parentId] = true;
+      saveOpen();
+      loadTree();
+    });
+}
+
+function renameFolder(f) {
+  var name = prompt('新名字', f.name);
+  if (!name || name === f.name) return;
+  api('folders/rename', { method: 'POST', body: { id: f.id, name: name } })
+    .then(function () { loadTree(); });
+}
+
+function deleteFolder(f) {
+  if (!confirm('删除「' + f.name + '」？里面的子文件夹一起删，条目会回到根。')) return;
+  api('folders/delete', { method: 'POST', body: { id: f.id } })
+    .then(function () { treeState.sel = null; loadTree(); });
+}
+
+function toast(msg) {
+  var el = document.getElementById('hint');
+  if (el) { el.textContent = msg; setTimeout(function () { el.textContent = ''; }, 3000); }
+}
 function boot() {
+  if (document.getElementById('newFolder')) document.getElementById('newFolder').onclick = function () { newFolder(null); };
+  if (document.getElementById('treeExpand')) document.getElementById('treeExpand').onclick = function () {
+    walkFolders(treeState.folders, function (f) { treeState.open[f.id] = true; });
+    saveOpen(); renderTree();
+  };
+  if (document.getElementById('treeCollapse')) document.getElementById('treeCollapse').onclick = function () {
+    treeState.open = {};
+    saveOpen(); renderTree();
+  };
+  document.addEventListener('click', function (e) {
+    if (!e.target.closest('.ctx') && !e.target.closest('.trow')) closeCtxMenu();
+  });
+
   Array.prototype.forEach.call(document.querySelectorAll('.group-head'), function (b) {
     b.onclick = function () {
       var box = b.parentElement.querySelector('.list');

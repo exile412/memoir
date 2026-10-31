@@ -81,6 +81,55 @@ def dispatch(app: Any, method: str, path: str, query: dict[str, list[str]],
 
         return _json(build_bootstrap(app))
 
+    if method == "GET" and route == "folders":
+        app.store.ensure_default_folders()
+        return _json({"folders": app.store.folder_tree()})
+
+    if method == "POST" and route == "folders/add":
+        try:
+            fid = app.store.folder_add(
+                str(payload.get("name") or ""),
+                payload.get("parentId") if payload.get("parentId") is not None else None,
+            )
+            return _json({"ok": True, "id": fid})
+        except ValueError as exc:
+            return _json({"error": str(exc)}, 400)
+
+    if method == "POST" and route == "folders/rename":
+        try:
+            app.store.folder_rename(int(payload.get("id")), str(payload.get("name") or ""))
+            return _json({"ok": True})
+        except (ValueError, TypeError) as exc:
+            return _json({"error": str(exc)}, 400)
+
+    if method == "POST" and route == "folders/delete":
+        try:
+            n = app.store.folder_delete(int(payload.get("id")))
+            return _json({"ok": True, "removed": n})
+        except (ValueError, TypeError) as exc:
+            return _json({"error": str(exc)}, 400)
+
+    if method == "POST" and route == "folders/move":
+        try:
+            app.store.folder_move(
+                int(payload.get("id")),
+                payload.get("parentId") if payload.get("parentId") is not None else None,
+                int(payload.get("sort") or 0),
+            )
+            return _json({"ok": True})
+        except (ValueError, TypeError) as exc:
+            return _json({"error": str(exc)}, 400)
+
+    if method == "POST" and route == "entries/move":
+        try:
+            app.store.entry_move(
+                int(payload.get("id")),
+                payload.get("folderId") if payload.get("folderId") is not None else None,
+            )
+            return _json({"ok": True})
+        except (ValueError, TypeError) as exc:
+            return _json({"error": str(exc)}, 400)
+
     if method == "GET" and route == "byauthor":
         return _json({"counts": app.store.by_author()})
 
@@ -96,7 +145,14 @@ def dispatch(app: Any, method: str, path: str, query: dict[str, list[str]],
             rows = list(reversed(app.store.entries_for_day(day)))
         else:
             author = query.get("author", [""])[0]
-            rows = app.store.recent_by(author, limit) if author in ("me", "ai") else app.store.recent(limit)
+            folder = query.get("folder", [""])[0]
+            if folder:
+                fid = None if folder == "root" else int(folder)
+                rows = list(reversed(app.store.entries_in_folder(fid, limit)))
+            elif author in ("me", "ai"):
+                rows = app.store.recent_by(author, limit)
+            else:
+                rows = app.store.recent(limit)
         if kind:
             rows = [e for e in rows if e.kind == kind]
         return _json({"entries": [_entry_json(e) for e in rows]})

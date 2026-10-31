@@ -32,24 +32,13 @@
   <button class="new-btn" id="newBtn">
     <span class="plus">＋</span> 新的记录
   </button>
-
-  <div class="list-head">
-    <span>记录</span>
-    <em id="listCount">0 条</em>
-  </div>
-  <div class="side-groups">
-    <div class="side-group">
-      <button class="group-head" data-group="me">
-        <i>▾</i>我的日记 <em id="cntMe">0</em>
-      </button>
-      <div class="list" id="listMe"></div>
+  <div class="tree-wrap">
+    <div class="tree-toolbar">
+      <button class="tree-btn" id="newFolder" title="新建文件夹">+ 文件夹</button>
+      <button class="tree-btn" id="treeExpand" title="全部展开">展开</button>
+      <button class="tree-btn" id="treeCollapse" title="全部折叠">折叠</button>
     </div>
-    <div class="side-group">
-      <button class="group-head" data-group="ai">
-        <i>▾</i>鱼娘写的 <em id="cntAi">0</em>
-      </button>
-      <div class="list" id="listAi"></div>
-    </div>
+    <div class="tree" id="tree"></div>
   </div>
 
   <div class="side-foot">
