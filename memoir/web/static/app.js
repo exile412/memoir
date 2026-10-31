@@ -270,11 +270,24 @@ function renderWallpapers(list) {
     return;
   }
   list.forEach(function (w) {
+    var url = '/api/wallpaper?id=' + encodeURIComponent(w.id);
     var d = document.createElement('div');
     d.className = 'wall';
-    d.innerHTML = '<img loading="lazy" src="/api/wallpaper?id=' +
-      encodeURIComponent(w.id) + '" alt="">';
-    d.onclick = function () { applyWallpaper(w.id); };
+    if (w.kind === 'video') {
+      d.innerHTML = '<video muted loop playsinline preload="metadata" src="' + url + '"></video>' +
+        '<span class="wall-badge">动态</span>';
+      d.onmouseenter = function () {
+        var v = d.querySelector('video');
+        if (v) { v.play().catch(function () {}); }
+      };
+      d.onmouseleave = function () {
+        var v = d.querySelector('video');
+        if (v) { v.pause(); v.currentTime = 0; }
+      };
+    } else {
+      d.innerHTML = '<img loading="lazy" src="' + url + '" alt="">';
+    }
+    d.onclick = function () { applyWallpaper(w.id, w.kind); };
     grid.appendChild(d);
   });
 }
@@ -283,21 +296,35 @@ function loadWallpapers() {
   api('wallpapers').then(function (res) { renderWallpapers(res.wallpapers || []); });
 }
 
-function applyWallpaper(id) {
+function applyWallpaper(id, kind) {
+  var layer = $('wpLayer');
   if (!id) {
+    layer.innerHTML = '';
+    layer.classList.remove('show');
     document.body.classList.remove('has-wallpaper');
     localStorage.removeItem('memoir.wallpaper');
     return;
   }
-  document.body.style.setProperty('--wallpaper',
-    'url("/api/wallpaper?id=' + encodeURIComponent(id) + '")');
+  var url = '/api/wallpaper?id=' + encodeURIComponent(id);
+  if (kind === 'video') {
+    layer.innerHTML = '<video autoplay muted loop playsinline preload="auto" src="' + url + '"></video>';
+  } else {
+    layer.innerHTML = '<img src="' + url + '" alt="">';
+  }
+  layer.classList.add('show');
   document.body.classList.add('has-wallpaper');
-  localStorage.setItem('memoir.wallpaper', id);
+  localStorage.setItem('memoir.wallpaper', JSON.stringify({ id: id, kind: kind || 'image' }));
 }
 
 function restoreWallpaper() {
-  var id = localStorage.getItem('memoir.wallpaper');
-  if (id) applyWallpaper(id);
+  var raw = localStorage.getItem('memoir.wallpaper');
+  if (!raw) return;
+  try {
+    var o = JSON.parse(raw);
+    if (o && o.id) applyWallpaper(o.id, o.kind);
+  } catch (e) {
+    applyWallpaper(raw, 'image');   // 兼容旧的纯字符串
+  }
 }
 
 function toggleSidebar(open) {
@@ -307,10 +334,11 @@ function toggleSidebar(open) {
 
 function isMobile() { return window.innerWidth <= 860; }
 
-function boot() {
+function startApp() {
   restoreWallpaper();
   if (isMobile()) $('input').placeholder = '写点什么，回车发送…';
   api('bootstrap').then(function (b) {
+    if (b.error) return;
     state.boot = b;
     clearChat();
     renderGreeting();
@@ -369,6 +397,79 @@ function boot() {
   $('exportBtn').onclick = function () { window.open('/api/export', '_blank'); };
   $('refreshBtn').onclick = function () { loadEntries(); loadSettings(); };
   $('menuBtn').onclick = function () { toggleSidebar(true); };
+}
+
+// ---------- 登录 ----------
+var authMode = 'login';
+
+function showAuth(sub, note) {
+  $('authLayer').classList.add('show');
+  $('authSub').textContent = sub || '';
+  $('authNote').textContent = note || '';
+  $('authPwd2').style.display = (authMode === 'setup') ? 'block' : 'none';
+  setTimeout(function () { $('authPwd').focus(); }, 60);
+}
+
+function hideAuth() { $('authLayer').classList.remove('show'); }
+
+function loginWith(pwd) {
+  $('authBtn').disabled = true;
+  return api('auth/login', { method: 'POST', body: { password: pwd } }).then(function (r) {
+    $('authBtn').disabled = false;
+    if (r.error) { $('authNote').textContent = r.error; return; }
+    hideAuth();
+    $('authPwd').value = '';
+    $('authPwd2').value = '';
+    startApp();
+  });
+}
+
+function doAuth() {
+  var pwd = $('authPwd').value;
+  var note = $('authNote');
+  note.textContent = '';
+  if (!pwd) { note.textContent = '密码不能为空'; return; }
+
+  if (authMode === 'setup') {
+    var pwd2 = $('authPwd2').value;
+    if (pwd.length < 4) { note.textContent = '至少 4 位'; return; }
+    if (pwd !== pwd2) { note.textContent = '两次输入不一致'; return; }
+    $('authBtn').disabled = true;
+    api('auth/setup', { method: 'POST', body: { password: pwd } }).then(function (r) {
+      if (r.error) { $('authBtn').disabled = false; note.textContent = r.error; return; }
+      authMode = 'login';
+      return loginWith(pwd);
+    });
+    return;
+  }
+  loginWith(pwd);
+}
+
+function checkAuth() {
+  return api('auth/status').then(function (s) {
+    if (!s.enabled) {
+      authMode = 'setup';
+      showAuth('第一次使用，先设一个访问密码', '只在这台电脑上保存，手机登录要用同一个密码');
+      return false;
+    }
+    return fetch('/api/bootstrap').then(function (r) {
+      if (r.status === 401) {
+        authMode = 'login';
+        showAuth('请输入访问密码', '');
+        return false;
+      }
+      return true;
+    });
+  });
+}
+
+function boot() {
+  $('authBtn').onclick = doAuth;
+  $('authPwd').addEventListener('keydown', function (e) { if (e.key === 'Enter') doAuth(); });
+  $('authPwd2').addEventListener('keydown', function (e) { if (e.key === 'Enter') doAuth(); });
+  checkAuth().then(function (ok) {
+    if (ok) startApp();
+  });
 }
 
 document.addEventListener('DOMContentLoaded', boot);

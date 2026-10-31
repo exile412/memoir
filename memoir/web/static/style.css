@@ -31,15 +31,23 @@ body{
   font-size:15px;
   line-height:1.6;
 }
-body.has-wallpaper{background:#0b0b0b}
-body.has-wallpaper::before{
-  content:"";position:fixed;inset:0;z-index:-2;
-  background-image:var(--wallpaper);background-size:cover;background-position:center;
-  filter:blur(1px) brightness(.45);transform:scale(1.04);
+/* 壁纸层：静态图或循环视频，都压暗到不抢文字 */
+.wallpaper-layer{
+  position:fixed;inset:0;z-index:-2;overflow:hidden;display:none;background:#0b0b0b;
+}
+.wallpaper-layer.show{display:block}
+.wallpaper-layer img,
+.wallpaper-layer video{
+  position:absolute;inset:0;width:100%;height:100%;object-fit:cover;
+  filter:brightness(.42) saturate(.9);transform:scale(1.03);
 }
 body.has-wallpaper::after{
-  content:"";position:fixed;inset:0;z-index:-1;
-  background:linear-gradient(180deg,rgba(10,10,10,.55),rgba(10,10,10,.8));
+  content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;
+  background:linear-gradient(180deg,rgba(10,10,10,.5),rgba(10,10,10,.78));
+}
+.wall-badge{
+  position:absolute;top:6px;right:6px;font-size:10px;padding:1px 6px;border-radius:5px;
+  background:rgba(0,0,0,.6);color:#9db0ff;border:1px solid rgba(77,107,254,.5);
 }
 button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit}
 input,textarea,select{font-family:inherit;outline:none}
@@ -239,6 +247,38 @@ select.pill{cursor:pointer;padding-right:8px}
   opacity:0;pointer-events:none;transition:opacity .2s;
 }
 .scrim.show{opacity:1;pointer-events:auto}
+
+.auth-layer{
+  position:fixed;inset:0;z-index:100;display:none;
+  align-items:center;justify-content:center;
+  background:radial-gradient(1200px 600px at 50% 0%,#181c26,#0b0d12 70%);
+}
+.auth-layer.show{display:flex}
+.auth-card{
+  width:340px;max-width:88vw;padding:36px 30px 28px;text-align:center;
+  background:var(--panel);border:1px solid var(--border);border-radius:18px;
+  box-shadow:0 24px 70px rgba(0,0,0,.6);
+}
+.auth-logo{
+  width:52px;height:52px;margin:0 auto 14px;border-radius:14px;display:grid;place-items:center;
+  background:linear-gradient(140deg,#2a3a8f,#4d6bfe);color:#fff;font-size:22px;
+  box-shadow:0 8px 24px rgba(77,107,254,.35);
+}
+.auth-card h2{font-size:18px;font-weight:600;letter-spacing:.4px;margin-bottom:6px}
+.auth-sub{font-size:12.5px;color:var(--text-3);margin-bottom:20px}
+.auth-card input{
+  display:block;width:100%;height:40px;margin-bottom:10px;padding:0 14px;
+  background:var(--bg-soft);border:1px solid var(--border);border-radius:10px;
+  color:var(--text);font-size:14px;transition:border-color .15s;
+}
+.auth-card input:focus{border-color:var(--accent)}
+.auth-btn{
+  width:100%;height:40px;margin-top:6px;border-radius:10px;
+  background:var(--accent);color:#fff;font-size:14px;font-weight:500;
+}
+.auth-btn:hover{opacity:.92}
+.auth-btn:disabled{opacity:.5;cursor:not-allowed}
+.auth-note{font-size:12px;color:var(--danger);margin-top:12px;min-height:16px}
 
 .only-mobile{display:none}
 @keyframes spin{to{transform:rotate(360deg)}}

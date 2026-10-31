@@ -8,6 +8,19 @@
 <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
+<div class="wallpaper-layer" id="wpLayer"></div>
+
+<div class="auth-layer" id="authLayer">
+  <div class="auth-card">
+    <div class="auth-logo">◈</div>
+    <h2>memoir</h2>
+    <p class="auth-sub" id="authSub">请输入访问密码</p>
+    <input type="password" id="authPwd" placeholder="访问密码" autocomplete="current-password">
+    <input type="password" id="authPwd2" placeholder="再输一次" autocomplete="new-password" style="display:none">
+    <button class="auth-btn" id="authBtn">进入</button>
+    <p class="auth-note" id="authNote"></p>
+  </div>
+</div>
 <div class="scrim" id="scrim"></div>
 
 <aside class="sidebar" id="sidebar">

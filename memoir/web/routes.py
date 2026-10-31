@@ -63,6 +63,10 @@ def dispatch(app: Any, method: str, path: str, query: dict[str, list[str]],
     if not path.startswith("/api/"):
         return _text("not found", 404)
 
+    # 认证相关（不需要登录就能访问）
+    if method == "GET" and path == "/api/auth/status":
+        return _json({"enabled": app.auth.enabled})
+
     payload: dict[str, Any] = {}
     if body:
         try:
@@ -199,6 +203,19 @@ def dispatch(app: Any, method: str, path: str, query: dict[str, list[str]],
         path = app.cfg.save()
         return _json({"ok": True, "savedTo": str(path)})
 
+    if method == "POST" and route == "auth/setup":
+        if app.auth.enabled:
+            return _json({"error": "密码已设置，不能再设一次"}, 400)
+        pwd = str(payload.get("password") or "").strip()
+        if len(pwd) < 4:
+            return _json({"error": "密码至少 4 位"}, 400)
+        app.auth.set_password(pwd)
+        return _json({"ok": True, "enabled": True})
+
+    if method == "POST" and route == "auth/reset":
+        # 只能在未登录状态下清空（会要求当前密码），这里留作 CLI 辅助
+        return _json({"error": "请在服务器上删除 ~/.memoir/auth.json 来重置"}, 400)
+
     if method == "POST" and route == "model/test":
         from ..llm import LLMClient
 
@@ -223,5 +240,14 @@ def dispatch(app: Any, method: str, path: str, query: dict[str, list[str]],
             return _text("not found", 404)
         ctype = mimetypes.guess_type(str(p))[0] or "image/jpeg"
         return 200, ctype, p.read_bytes()
+
+    if method == "HEAD" and route == "wallpaper-meta":
+        from .app import wallpaper_path
+
+        wid = query.get("id", [""])[0]
+        p = wallpaper_path(app, wid)
+        if not p:
+            return _json({"error": "not found"}, 404)
+        return _json({"size": p.stat().st_size, "type": p.suffix.lower()})
 
     return _json({"error": f"未知接口 {method} /api/{route}"}, 404)
