@@ -75,38 +75,24 @@ function renderGreeting() {
 }
 
 function renderList() {
-  var list = $('listMe');
-  if (!list) return;
-  list.innerHTML = '';
-  if ($('cntMe')) $('cntMe').textContent = state.entries.length;
+  var chat = document.getElementById('chat');
+  if (!chat) return;
   if (!state.entries.length) {
-    list.innerHTML = '<div class="empty" style="padding:30px 10px">还没有记录</div>';
+    clearChat();
+    push(bubble('ai', '没搜到相关的记录。'))
     return;
   }
+  clearChat();
+  push(bubble('ai', '搜到 ' + state.entries.length + ' 条：'));
   state.entries.forEach(function (e) {
-    var time = (e.ts || '').slice(11, 16);
-    var title = e.title || (e.text || '').slice(0, 18);
-    var div = document.createElement('div');
-    div.className = 'item' + (state.currentId === e.id ? ' active' : '');
-    div.innerHTML = '<b>' + esc(title) + '</b><small>' + time + ' · ' +
-      esc(kindLabel(e.kind)) + '</small><span class="del" title="删除">✕</span>';
-    div.onclick = function (ev) {
-      if (ev.target.classList.contains('del')) {
-        if (confirm('删除这条记录？')) {
-          api('entries/' + e.id, { method: 'DELETE' }).then(loadEntries);
-        }
-        return;
-      }
-      state.currentId = e.id;
-      clearChat();
-      push(bubble('ai', '<div class="txt">这是你记下的：</div>'));
-      push(bubble('me', entryInner(e)));
-      renderList();
-    };
-    list.appendChild(div);
+    var b = document.createElement('div');
+    b.className = 'msg ai';
+    var when = (e.ts || '').slice(0, 16).replace('T', ' ');
+    b.innerHTML = '<div class="bubble">' + formatText(e.text) +
+      '<div class="meta">' + when + ' · ' + esc(kindLabel(e.kind)) + '</div></div>';
+    chat.appendChild(b);
   });
 }
-
 function loadEntries() {
   var q = $('search').value.trim();
   var url = q ? ('entries?q=' + encodeURIComponent(q)) : 'entries';
