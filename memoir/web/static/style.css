@@ -510,3 +510,26 @@ body.has-wallpaper .sidebar *{border-color:rgba(255,255,255,.05)}
   border:1px solid rgba(120,160,255,.28);backdrop-filter:blur(10px);cursor:pointer;
 }
 .galaxy-close:hover{background:rgba(77,141,255,.22)}
+
+/* ---------- 条目编辑 ---------- */
+.edit-btn{
+  margin-left:10px;height:20px;padding:0 8px;border-radius:5px;font-size:11px;
+  color:var(--text-3);border:1px solid var(--border);background:transparent;cursor:pointer;
+}
+.edit-btn:hover{color:var(--accent);border-color:var(--accent)}
+.edit-box{min-width:340px}
+.edit-box textarea{
+  width:100%;padding:10px;border-radius:8px;font-size:14px;line-height:1.7;
+  background:var(--bg-soft);border:1px solid var(--border);color:var(--text);
+  font-family:inherit;resize:vertical;outline:none;
+}
+.edit-box textarea:focus{border-color:var(--accent)}
+.edit-row{display:flex;gap:8px;align-items:center;margin-top:10px}
+.edit-row select{
+  height:30px;padding:0 8px;border-radius:7px;background:var(--bg-soft);
+  border:1px solid var(--border);color:var(--text);font-size:13px;
+}
+.edit-row .btn{margin-left:auto}
+
+.clickable{cursor:pointer}
+.clickable:hover .bubble{border-color:var(--accent)}

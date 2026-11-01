@@ -120,6 +120,25 @@ def dispatch(app: Any, method: str, path: str, query: dict[str, list[str]],
         except (ValueError, TypeError) as exc:
             return _json({"error": str(exc)}, 400)
 
+    if method == "POST" and route == "entries/update":
+        try:
+            eid = int(payload.get("id"))
+        except (TypeError, ValueError):
+            return _json({"error": "id 不合法"}, 400)
+        text = payload.get("text")
+        kind = payload.get("kind")
+        if text is not None and not str(text).strip():
+            return _json({"error": "内容不能为空"}, 400)
+        changed = app.store.update_entry(
+            eid,
+            text=str(text) if text is not None else None,
+            kind=str(kind) if kind else None,
+        )
+        if not changed:
+            return _json({"error": "没找到这条记录"}, 404)
+        fresh = next((x for x in app.store.recent(500) if x.id == eid), None)
+        return _json({"ok": True, "entry": _entry_json(fresh) if fresh else None})
+
     if method == "POST" and route == "entries/move":
         try:
             app.store.entry_move(

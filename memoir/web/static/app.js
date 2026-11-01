@@ -128,10 +128,44 @@ function showEntryDetail(e) {
   wrap.className = 'msg ai';
   var when = fmtWhen(e.ts, true);
   wrap.innerHTML = '<div class="bubble">' + formatText(e.text) +
-    '<div class="meta">' + when + ' · ' + esc(kindLabel(e.kind)) + '</div></div>';
+    '<div class="meta">' + when + ' · ' + esc(kindLabel(e.kind)) +
+    '<button class="edit-btn" id="editEntry">编辑</button></div></div>';
   document.getElementById('chat').appendChild(wrap);
+  var btn = document.getElementById('editEntry');
+  if (btn) btn.onclick = function () { editEntry(e, wrap); };
 }
 
+function editEntry(e, wrap) {
+  var body = '<div class="edit-box">' +
+    '<textarea id="editText" rows="6">' + esc(e.text) + '</textarea>' +
+    '<div class="edit-row">' +
+      '<select id="editKind">' +
+        ['event', 'thought', 'feeling', 'note'].map(function (k) {
+          return '<option value="' + k + '"' + (k === e.kind ? ' selected' : '') + '>' +
+            esc(kindLabel(k)) + '</option>';
+        }).join('') +
+      '</select>' +
+      '<button class="btn primary" id="editSave">保存</button>' +
+      '<button class="btn" id="editCancel">取消</button>' +
+    '</div></div>';
+  wrap.innerHTML = '<div class="bubble">' + body + '</div>';
+  var ta = document.getElementById('editText');
+  ta.focus();
+  document.getElementById('editCancel').onclick = function () { showEntryDetail(e); };
+  document.getElementById('editSave').onclick = function () {
+    var text = ta.value.trim();
+    if (!text) { toast('内容不能为空'); return; }
+    var kind = document.getElementById('editKind').value;
+    api('entries/update', { method: 'POST', body: { id: e.id, text: text, kind: kind } })
+      .then(function (r) {
+        if (r.error) { toast(r.error); return; }
+        e.text = text; e.kind = kind;
+        showEntryDetail(e);
+        loadTree();
+        toast('已保存');
+      });
+  };
+}
 function renderGroup(id, list) {
   var el = document.getElementById(id);
   if (!el) return;
@@ -792,10 +826,11 @@ function showFolderEntries(f) {
     }
     state.entries.forEach(function (e) {
       var b = document.createElement('div');
-      b.className = 'msg ai';
-      var when = (e.ts || '').slice(0, 16).replace('T', ' ');
+      b.className = 'msg ai clickable';
+      var when = fmtWhen(e.ts, true);
       b.innerHTML = '<div class="bubble">' + formatText(e.text) +
         '<div class="meta">' + when + ' · ' + esc(kindLabel(e.kind)) + '</div></div>';
+      b.onclick = function () { showEntryDetail(e); };
       document.getElementById('chat').appendChild(b);
     });
   });
