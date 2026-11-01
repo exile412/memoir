@@ -484,6 +484,7 @@ class Store:
             return
         self.folder_add("我的日志")
         self.folder_add("鱼娘的日志")
+        self.folder_add("复盘")
 
     def default_folder_for(self, author: str) -> int | None:
         """按作者找归属文件夹，新记录自动落进去。"""
@@ -647,6 +648,55 @@ class Store:
                 ),
             )
             self.conn.commit()
+        self._mirror_review(review)
+
+    def _mirror_review(self, review) -> None:
+        """把复盘正文也写成一条记录，归到「复盘」文件夹，这样侧栏树里能看到。"""
+        try:
+            texts = []
+            secs = getattr(review, "sections", None)
+            if isinstance(secs, dict):
+                labels = {
+                    "events": "做了什么事", "thoughts": "想法", "feelings": "心里话",
+                    "persona": "性格与状态", "message": "给你的话", "summary": "小结",
+                }
+                for key, val in secs.items():
+                    if val:
+                        texts.append((labels.get(key, key) + "\n" + str(val)).strip())
+            elif isinstance(secs, list):
+                for sec in secs:
+                    head = getattr(sec, "heading", "") or ""
+                    body_txt = getattr(sec, "body", "") or ""
+                    if head or body_txt:
+                        texts.append((head + "\n" + body_txt).strip())
+            content = "\n\n".join(t for t in texts if t).strip()
+            if not content:
+                return
+            name = "复盘"
+            with self._lock:
+                row = self.conn.execute(
+                    "SELECT id FROM folders WHERE name = ? AND parent_id IS NULL", (name,)
+                ).fetchone()
+            fid = int(row["id"]) if row else self.folder_add(name)
+            # 同一天已有镜像就更新，不重复堆
+            with self._lock:
+                old = self.conn.execute(
+                    "SELECT id FROM entries WHERE folder_id = ? AND day = ? AND source = 'review'",
+                    (fid, review.day),
+                ).fetchone()
+            if old:
+                self.update_entry(int(old["id"]), text=content)
+            else:
+                self.current_folder_id = fid
+                try:
+                    self.add_entry(
+                        text=content, kind="note", source="review", author="ai",
+                        ts=_now(),
+                    )
+                finally:
+                    self.current_folder_id = None
+        except Exception:  # noqa: BLE001
+            pass
 
     def get_review(self, day: str) -> Review | None:
         with self._lock:
