@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "memoir"
-version = "0.8.0"
-description = "Private, local-first AI memory system: record your days, get a nightly review, grow a persona profile. Desktop + web + phone, one SQLite file."
+version = "0.9.0"
+description = "Local-first personal AI memory: daily entries, nightly reviews, persona profile, nestable folders, memory galaxy. One SQLite file, works offline, optional local model."
 readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "MIT" }
